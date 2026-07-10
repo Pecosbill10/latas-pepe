@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+latas.db
+backups/
+static/fotos/*
+!static/fotos/.gitkeep
+sync_config.json
+cloud/pendientes.db
+cloud/cloud_config.json
+.claude/
+*.zip
+

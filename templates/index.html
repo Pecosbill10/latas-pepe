@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colección de Latas – Pepe</title>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#1A3C5E">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Latas Pepe">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.3.0/dist/chartjs-chart-treemap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/maps/world.js"></script>
+<style>
+:root {
+  --cerveza: #D4811A;
+  --cerveza-dk: #A85F0E;
+  --azul: #1A3C5E;
+  --azul-cl: #2E6DA4;
+  --fondo: #F0F4F8;
+  --shadow: 0 2px 14px rgba(0,0,0,0.09);
+  --surface: #fff;
+  --surface-2: #F0F4F8;
+  --surface-hover: #EEF4FB;
+  --text: #333;
+  --text-muted: #777;
+  --text-soft: #555;
+  --border: #D0D7DE;
+  --azul-text: var(--azul);
+}
+body.dark {
+  --fondo: #121826;
+  --surface: #1E2733;
+  --surface-2: #283447;
+  --surface-hover: #2E3B4E;
+  --text: #E4E8EE;
+  --text-muted: #9AA5B1;
+  --text-soft: #C2CCD8;
+  --border: #3A4656;
+  --shadow: 0 2px 14px rgba(0,0,0,0.4);
+  --azul-text: #6FA8DC;
+}
+* { box-sizing: border-box; }
+body { background: var(--fondo); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; transition: background .2s, color .2s; }
+
+/* ── NAV ── */
+.navbar { background: var(--azul) !important; }
+.navbar-brand { font-size: 1.25rem; font-weight: 700; color: #fff !important; }
+.navbar-brand span { color: var(--cerveza); }
+.nav-link { color: rgba(255,255,255,.8) !important; font-weight: 500; transition:.15s; }
+.nav-link.active, .nav-link:hover { color: var(--cerveza) !important; }
+
+/* ── SECTIONS ── */
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── STAT CARDS ── */
+.stat-card {
+  background: var(--surface); border-radius: 14px; padding: 1.3rem 1.4rem;
+  box-shadow: var(--shadow); display: flex; align-items: center; gap: 1rem;
+  transition: transform .15s;
+}
+.stat-card:hover { transform: translateY(-3px); }
+.stat-icon { width: 50px; height: 50px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink:0; }
+.si-gold  { background:#FFF3E0; color:var(--cerveza); }
+.si-blue  { background:#E3F0FF; color:var(--azul-cl); }
+.si-green { background:#E8F5E9; color:#2E7D32; }
+.si-red   { background:#FCE4EC; color:#C62828; }
+.stat-val { font-size:1.9rem; font-weight:700; color:var(--azul-text); line-height:1; }
+.stat-lbl { font-size:.8rem; color:var(--text-muted); margin-top:2px; }
+
+/* ── CARDS WRAPPER ── */
+.panel { background:var(--surface); border-radius:14px; box-shadow:var(--shadow); padding:1.2rem 1.4rem; }
+
+/* ── STATS PILLS ── */
+.stats-pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:1.2rem; }
+.stat-pill {
+  background:var(--surface); border:1.5px solid var(--border); border-radius:20px;
+  padding:6px 15px; color:var(--text-soft); font-size:.85rem; font-weight:600;
+  cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.stat-pill:hover { border-color:var(--azul-cl); color:var(--azul-cl); background:var(--surface-hover); }
+.stat-pill.active { background:var(--azul); color:#fff; border-color:var(--azul); box-shadow:0 2px 8px rgba(26,60,94,.25); }
+
+/* ── TABLE ── */
+.table { color:var(--text); }
+.table thead th { background:var(--azul); color:#fff; border:none; font-weight:600; font-size:.87rem; }
+.table tbody tr:hover { background:var(--surface-hover); cursor:pointer; }
+.table td { vertical-align:middle; font-size:.9rem; }
+.badge-tipo { font-size:.74rem; padding:3px 9px; border-radius:20px; font-weight:600; }
+.t-grande    { background:#DCEEFB; color:#1565C0; }
+.t-grande1   { background:#E8F5E9; color:#2E7D32; }
+.t-botellita { background:#FFF8E1; color:#E65100; }
+.t-sin       { background:#F0F0F0; color:#666; }
+
+/* ── SEARCH BAR ── */
+.search-bar { background:var(--surface); border-radius:14px; padding:1rem 1.2rem;
+  box-shadow:var(--shadow); }
+.search-bar input, .search-bar select { border-radius:8px; border:1.5px solid var(--border); font-size:.9rem; }
+.search-bar input:focus, .search-bar select:focus {
+  border-color:var(--azul-cl); box-shadow:0 0 0 3px rgba(46,109,164,.15); }
+
+/* ── BUTTONS ── */
+.btn-cerveza { background:var(--cerveza); color:#fff; border:none; border-radius:8px; font-weight:600; }
+.btn-cerveza:hover { background:var(--cerveza-dk); color:#fff; }
+.btn-edit { background:#E3F0FF; color:var(--azul-cl); border:none; border-radius:6px; padding:3px 10px; font-size:.82rem; }
+.btn-edit:hover { background:var(--azul-cl); color:#fff; }
+.btn-del  { background:#FCE4EC; color:#C62828; border:none; border-radius:6px; padding:3px 10px; font-size:.82rem; }
+.btn-del:hover { background:#C62828; color:#fff; }
+
+/* ── VIEW TOGGLE ── */
+.view-btn { background:var(--surface-2); border:1.5px solid var(--border); border-radius:8px;
+  padding:5px 12px; color:var(--text-soft); font-size:.85rem; transition:.15s; }
+.view-btn.active { background:var(--azul); color:#fff; border-color:var(--azul); }
+
+/* ── CARD VIEW ── */
+.lata-card {
+  background:var(--surface); border-radius:14px; overflow:hidden;
+  box-shadow:var(--shadow); transition:transform .15s;
+  display:flex; flex-direction:column;
+}
+.lata-card:hover { transform:translateY(-4px); }
+.lata-photo {
+  height:140px; display:flex; align-items:center; justify-content:center;
+  font-size:3.5rem; position:relative; overflow:hidden;
+}
+.lata-photo img { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; }
+.lata-photo .ph-emoji { z-index:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+.lata-body { padding:.9rem; flex:1; }
+.lata-marca { font-weight:700; font-size:1rem; color:var(--azul-text); line-height:1.2; }
+.lata-modelo { font-size:.82rem; color:var(--text-muted); }
+.lata-footer { padding:.6rem .9rem; border-top:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center; }
+.flag-lbl { font-size:.83rem; color:var(--text-soft); }
+.cant-badge { background:var(--cerveza); color:#fff; border-radius:20px;
+  font-size:.75rem; padding:2px 8px; font-weight:700; }
+
+/* ── MODAL ── */
+.modal-header { background:var(--azul); color:#fff; border-radius:12px 12px 0 0; }
+.modal-content { background:var(--surface); color:var(--text); border-radius:12px; border:none; box-shadow:0 8px 40px rgba(0,0,0,.18); }
+.form-label { font-weight:600; font-size:.87rem; color:var(--text-soft); }
+.form-control,.form-select { background:var(--surface); color:var(--text); border-radius:8px; border:1.5px solid var(--border); }
+.form-control:focus,.form-select:focus { background:var(--surface); color:var(--text); border-color:var(--azul-cl); box-shadow:0 0 0 3px rgba(46,109,164,.15); }
+
+/* ── PHOTO UPLOAD ── */
+.foto-preview { width:100%; height:160px; border-radius:10px; object-fit:cover; display:none; }
+.foto-placeholder { width:100%; height:100px; border-radius:10px; background:var(--surface-2);
+  border:2px dashed var(--border); display:flex; align-items:center; justify-content:center;
+  color:var(--text-muted); font-size:.85rem; cursor:pointer; }
+.foto-placeholder:hover { border-color:var(--azul-cl); color:var(--azul-cl); }
+
+/* ── GALERÍA ── */
+.galeria-thumb { position:relative; border-radius:12px; overflow:hidden; cursor:pointer;
+  box-shadow:var(--shadow); aspect-ratio:1/1; transition:transform .15s; }
+.galeria-thumb:hover { transform:scale(1.03); }
+.galeria-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.galeria-thumb .galeria-cap { position:absolute; left:0; right:0; bottom:0; padding:6px 8px;
+  background:linear-gradient(to top, rgba(0,0,0,.72), transparent); color:#fff; font-size:.74rem;
+  line-height:1.15; }
+.galeria-thumb .galeria-cap strong { display:block; font-size:.8rem; }
+#modalLightbox .modal-content { background:rgba(18,24,38,.97); }
+#modalLightbox img { max-height:65vh; width:100%; object-fit:contain; border-radius:8px; }
+.lightbox-nav-btn { background:rgba(255,255,255,.12); border:none; color:#fff; border-radius:50%;
+  width:42px; height:42px; font-size:1.1rem; }
+.lightbox-nav-btn:hover { background:rgba(255,255,255,.25); }
+
+/* ── PAGINATION ── */
+.pagination .page-link { color:var(--azul-text); background-color:var(--surface); border-color:var(--border); border-radius:6px; margin:0 2px; }
+.pagination .page-item.active .page-link { background:var(--azul); border-color:var(--azul); }
+
+/* ── WORLD MAP ── */
+#world-map { height:420px; width:100%; }
+.jvectormap-zoomin, .jvectormap-zoomout { background:var(--azul); }
+.jvectormap-tip { background:var(--azul) !important; color:#fff !important;
+  border-radius:8px !important; padding:6px 12px !important; font-size:.85rem !important; }
+
+/* ── CHART CARD ── */
+.chart-card { background:var(--surface); border-radius:14px; box-shadow:var(--shadow);
+  padding:1.2rem 1.4rem; }
+.chart-title { font-size:.95rem; font-weight:700; color:var(--azul-text); margin-bottom:.8rem; }
+.chart-title i { color:var(--cerveza); margin-right:5px; }
+
+/* ── PAIS LIST ── */
+.pais-list { columns:3; column-gap:1rem; }
+.pais-item { break-inside:avoid; display:flex; justify-content:space-between; align-items:center;
+  padding:5px 10px; margin-bottom:3px; border-radius:7px; font-size:.87rem; }
+.pais-item:nth-child(odd) { background:var(--surface-2); }
+.pais-name { display:flex; align-items:center; gap:6px; }
+.pais-badge { background:var(--cerveza); color:#fff; border-radius:20px;
+  padding:1px 9px; font-size:.76rem; font-weight:700; }
+
+/* ── TOAST ── */
+.toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; }
+.toast { min-width:240px; border-radius:10px; }
+
+/* ── LOADING ── */
+#loading { position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(26,60,94,.88); z-index:9998; display:flex;
+  align-items:center; justify-content:center; flex-direction:column; }
+#loading .spinner-border { width:3rem; height:3rem; color:var(--cerveza); }
+#loading p { color:#fff; margin-top:.8rem; font-size:1rem; }
+
+/* ── EMPTY ── */
+.empty-state { text-align:center; padding:3rem 1rem; color:var(--text-muted); }
+.empty-state i { font-size:2.5rem; margin-bottom:.7rem; display:block; }
+.empty-state p { margin:0; font-size:.9rem; }
+
+/* ── SEC TITLE ── */
+.sec-title { font-size:1.25rem; font-weight:700; color:var(--azul-text); }
+.sec-title i { color:var(--cerveza); margin-right:6px; }
+
+/* ── DARK MODE: ajustes extra de Bootstrap ── */
+.theme-toggle { background:transparent; border:1.5px solid rgba(255,255,255,.35); color:#fff;
+  border-radius:8px; padding:5px 11px; font-size:.9rem; }
+.theme-toggle:hover { background:rgba(255,255,255,.12); }
+body.dark .dropdown-menu { background-color:var(--surface); color:var(--text); }
+body.dark .btn-close { filter:invert(1) grayscale(1); }
+body.dark .btn-outline-secondary { color:var(--text); border-color:var(--border); }
+body.dark .btn-outline-secondary:hover { background-color:var(--surface-hover); color:var(--text); }
+body.dark .text-muted { color:var(--text-muted) !important; }
+body.dark #world-map { background:var(--surface-2); border-radius:10px; }
+body.dark .jvm-zoom-btn { background-color:var(--azul); }
+body.dark .toast-body { background:var(--surface); color:var(--text); }
+</style>
+</head>
+<body>
+<script>
+// Aplica el tema guardado ANTES de pintar el resto, para evitar el "flash" de fondo claro.
+if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+</script>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner-border"></div>
+  <p>Cargando colección de Pepe...</p>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg sticky-top shadow-sm">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand" href="#" onclick="showSection('dashboard');return false">
+      🍺 Colección de <span>Pepe</span>
+    </a>
+    <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navContent">
+      <ul class="navbar-nav me-auto gap-1">
+        <li class="nav-item"><a class="nav-link active" href="#" id="nav-dashboard" onclick="showSection('dashboard');return false"><i class="fa-solid fa-gauge me-1"></i>Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" id="nav-coleccion" onclick="showSection('coleccion');return false"><i class="fa-solid fa-list me-1"></i>Colección</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" id="nav-wishlist" onclick="showSection('wishlist');return false"><i class="fa-solid fa-heart me-1"></i>Deseadas <span class="badge rounded-pill text-bg-light ms-1" id="nav-wishlist-badge" style="display:none"></span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" id="nav-galeria" onclick="showSection('galeria');return false"><i class="fa-regular fa-images me-1"></i>Galería</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" id="nav-stats" onclick="showSection('stats');return false"><i class="fa-solid fa-chart-bar me-1"></i>Estadísticas</a></li>
+      </ul>
+      <ul class="navbar-nav gap-1">
+        <li class="nav-item">
+          <button class="btn btn-cerveza" onclick="openModal()"><i class="fa-solid fa-plus me-1"></i>Agregar lata</button>
+        </li>
+        <li class="nav-item ms-1">
+          <button class="btn btn-outline-warning btn-sm mt-1" onclick="exportar()">
+            <i class="fa-solid fa-file-excel me-1"></i>Excel
+          </button>
+        </li>
+        <li class="nav-item ms-1">
+          <button class="btn btn-outline-light btn-sm mt-1" onclick="backup()" title="Descargar copia de seguridad de la base de datos">
+            <i class="fa-solid fa-database me-1"></i>Backup
+          </button>
+        </li>
+        <li class="nav-item ms-1">
+          <button class="btn btn-outline-light btn-sm mt-1" onclick="document.getElementById('restore-file').click()" title="Restaurar una copia de seguridad">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i>Restaurar
+          </button>
+          <input type="file" id="restore-file" accept=".db" style="display:none" onchange="restoreBackup(this)">
+        </li>
+        <li class="nav-item ms-1">
+          <button class="btn btn-outline-light btn-sm mt-1" onclick="abrirModalCelular()" title="Acceder desde el celular">
+            <i class="fa-solid fa-mobile-screen-button me-1"></i>Celular
+          </button>
+        </li>
+        <li class="nav-item ms-1">
+          <button class="btn btn-outline-light btn-sm mt-1" onclick="syncPendientes()" title="Traer las latas anotadas desde el buzón en la nube">
+            <i class="fa-solid fa-cloud-arrow-down me-1"></i>Sincronizar
+          </button>
+        </li>
+        <li class="nav-item ms-1">
+          <a class="btn btn-outline-light btn-sm mt-1" href="https://drive.google.com" target="_blank">
+            <i class="fa-brands fa-google-drive me-1"></i>Drive
+          </a>
+        </li>
+        <li class="nav-item ms-1">
+          <button class="theme-toggle mt-1" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar tema claro/oscuro">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 py-4">
+
+<!-- ═══════════════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════════════ -->
+<div id="sec-dashboard" class="section active">
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon si-gold">🍺</div>
+        <div><div class="stat-val" id="s-total">–</div><div class="stat-lbl">Total latas</div></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon si-blue"><i class="fa-solid fa-globe fa-sm"></i></div>
+        <div><div class="stat-val" id="s-paises">–</div><div class="stat-lbl">Países</div></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon si-green"><i class="fa-solid fa-tag fa-sm"></i></div>
+        <div><div class="stat-val" id="s-marcas">–</div><div class="stat-lbl">Marcas distintas</div></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon si-red"><i class="fa-solid fa-layer-group fa-sm"></i></div>
+        <div><div class="stat-val" id="s-modelos">–</div><div class="stat-lbl">Modelos distintos</div></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon si-gold"><i class="fa-solid fa-star fa-sm"></i></div>
+        <div><div class="stat-val" id="s-sabor">–</div><div class="stat-lbl">Sabor promedio (1-5)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Top países -->
+    <div class="col-lg-8">
+      <div class="chart-card" style="height:330px">
+        <div class="chart-title"><i class="fa-solid fa-ranking-star"></i>Top 15 países</div>
+        <canvas id="chart-paises" style="max-height:270px"></canvas>
+      </div>
+    </div>
+    <!-- Por tipo -->
+    <div class="col-lg-4">
+      <div class="chart-card" style="height:330px">
+        <div class="chart-title"><i class="fa-solid fa-circle-half-stroke"></i>Tipo de lata</div>
+        <canvas id="chart-tipo" style="max-height:270px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     COLECCIÓN
+════════════════════════════════════════════════════ -->
+<div id="sec-coleccion" class="section">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="sec-title mb-0"><i class="fa-solid fa-list"></i>Colección completa</div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted small" id="col-total-lbl"></span>
+      <button class="view-btn active" id="btn-vista-tabla" onclick="setVista('tabla')">
+        <i class="fa-solid fa-table-list"></i>
+      </button>
+      <button class="view-btn" id="btn-vista-tarjetas" onclick="setVista('tarjetas')">
+        <i class="fa-solid fa-grip"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="search-bar mb-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-4">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0 pe-1"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+          <input type="text" id="filtro-q" class="form-control border-start-0" placeholder="Buscar marca, modelo, país..." oninput="debounceLoad()">
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <select id="filtro-continente" class="form-select" onchange="filtrarPorContinente()">
+          <option value="">Todos los continentes</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <select id="filtro-pais" class="form-select" onchange="loadColeccion(1)">
+          <option value="">Todos los países</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select id="filtro-tipo" class="form-select" onchange="loadColeccion(1)">
+          <option value="">Todos los tipos</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select id="filtro-sabor" class="form-select" onchange="loadColeccion(1)">
+          <option value="">Cualquier sabor</option>
+          <option value="5">★★★★★ y más</option>
+          <option value="4">★★★★☆ y más</option>
+          <option value="3">★★★☆☆ y más</option>
+          <option value="2">★★☆☆☆ y más</option>
+          <option value="1">★☆☆☆☆ y más</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-1">
+        <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()" title="Limpiar filtros">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista tabla -->
+  <div id="vista-tabla">
+    <div style="background:var(--surface);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Marca</th>
+            <th>Modelo</th>
+            <th>Tipo</th>
+            <th>País</th>
+            <th class="text-center">Sabor</th>
+            <th class="text-center">Cant.</th>
+            <th>Fecha</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-latas"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Vista tarjetas -->
+  <div id="vista-tarjetas" style="display:none">
+    <div class="row g-3" id="grid-tarjetas"></div>
+  </div>
+
+  <!-- Paginación -->
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="text-muted small" id="pag-info"></div>
+    <nav><ul class="pagination pagination-sm mb-0" id="paginacion"></ul></nav>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     WISHLIST (latas deseadas)
+════════════════════════════════════════════════════ -->
+<div id="sec-wishlist" class="section">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="sec-title mb-0"><i class="fa-solid fa-heart"></i>Latas que quiero conseguir</div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-warning" onclick="exportarWishlist()" title="Exportar a Excel para compartir">
+        <i class="fa-solid fa-file-excel me-1"></i>Exportar
+      </button>
+      <button class="btn btn-cerveza" onclick="openWishlistModal()"><i class="fa-solid fa-plus me-1"></i>Agregar deseo</button>
+    </div>
+  </div>
+
+  <div id="wishlist-empty" class="empty-state" style="display:none">
+    <i class="fa-solid fa-heart-crack"></i>
+    <p>Todavía no agregaste ninguna lata a tu lista de deseos.</p>
+  </div>
+
+  <div class="row g-3" id="grid-wishlist"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     GALERÍA
+════════════════════════════════════════════════════ -->
+<div id="sec-galeria" class="section">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="sec-title mb-0"><i class="fa-regular fa-images"></i>Galería de fotos</div>
+    <span class="text-muted small" id="galeria-total-lbl"></span>
+  </div>
+
+  <div id="galeria-empty" class="empty-state" style="display:none">
+    <i class="fa-regular fa-image"></i>
+    <p>Todavía no subiste fotos.<br>Cuando le agregues una foto a una lata, va a aparecer acá.</p>
+  </div>
+
+  <div class="row g-2" id="grid-galeria"></div>
+
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="text-muted small" id="galeria-pag-info"></div>
+    <nav><ul class="pagination pagination-sm mb-0" id="galeria-paginacion"></ul></nav>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     ESTADÍSTICAS
+════════════════════════════════════════════════════ -->
+<div id="sec-stats" class="section">
+  <div class="sec-title mb-3"><i class="fa-solid fa-chart-bar"></i>Estadísticas</div>
+
+  <!-- Pills de navegación -->
+  <div class="stats-pills" id="statsPills">
+    <button class="stat-pill active" onclick="showStatTab('mapa')">🗺️ Mapa mundial</button>
+    <button class="stat-pill" onclick="showStatTab('continentes')">🌍 Continentes</button>
+    <button class="stat-pill" onclick="showStatTab('marcas')">🏷️ Marcas</button>
+    <button class="stat-pill" onclick="showStatTab('tipos')">🍺 Tipos</button>
+    <button class="stat-pill" onclick="showStatTab('treemap')">🌳 Treemap</button>
+    <button class="stat-pill" onclick="showStatTab('timeline')">📈 Evolución</button>
+    <button class="stat-pill" onclick="showStatTab('paises')">🏳️ Países</button>
+    <button class="stat-pill" onclick="showStatTab('sabor')">⭐ Sabor</button>
+  </div>
+
+  <!-- Tab: Mapa -->
+  <div id="stat-mapa" class="stat-tab">
+    <div class="panel">
+      <div class="chart-title"><i class="fa-solid fa-earth-americas"></i>Mapa de la colección — países coloreados por cantidad de latas</div>
+      <div id="world-map"></div>
+      <div class="mt-3 d-flex align-items-center gap-2 justify-content-center flex-wrap" id="map-legend"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Continentes -->
+  <div id="stat-continentes" class="stat-tab" style="display:none">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="chart-card" style="height:360px">
+          <div class="chart-title"><i class="fa-solid fa-chart-pie"></i>Latas por continente</div>
+          <canvas id="chart-continentes-pie" style="max-height:300px"></canvas>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="chart-card" style="height:360px">
+          <div class="chart-title"><i class="fa-solid fa-chart-simple"></i>Comparativa de continentes</div>
+          <canvas id="chart-continentes-bar" style="max-height:300px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Marcas -->
+  <div id="stat-marcas" class="stat-tab" style="display:none">
+    <div class="chart-card" style="height:480px">
+      <div class="chart-title"><i class="fa-solid fa-medal"></i>Top 15 marcas</div>
+      <canvas id="chart-marcas" style="max-height:420px"></canvas>
+    </div>
+  </div>
+
+  <!-- Tab: Tipos -->
+  <div id="stat-tipos" class="stat-tab" style="display:none">
+    <div class="row g-3">
+      <div class="col-md-5">
+        <div class="chart-card" style="height:380px">
+          <div class="chart-title"><i class="fa-solid fa-chart-pie"></i>Distribución por tipo</div>
+          <canvas id="chart-tipos-donut" style="max-height:320px"></canvas>
+        </div>
+      </div>
+      <div class="col-md-7">
+        <div class="chart-card" style="height:380px">
+          <div class="chart-title"><i class="fa-solid fa-chart-column"></i>Cantidad por tipo</div>
+          <canvas id="chart-tipos-bar" style="max-height:320px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Treemap -->
+  <div id="stat-treemap" class="stat-tab" style="display:none">
+    <div class="chart-card" style="height:500px">
+      <div class="chart-title"><i class="fa-solid fa-border-all"></i>Treemap — proporciones por marca (top 40)</div>
+      <canvas id="chart-treemap" style="max-height:440px"></canvas>
+    </div>
+  </div>
+
+  <!-- Tab: Timeline -->
+  <div id="stat-timeline" class="stat-tab" style="display:none">
+    <div class="chart-card">
+      <div class="chart-title"><i class="fa-solid fa-chart-line"></i>Evolución de la colección</div>
+      <div id="timeline-container">
+        <canvas id="chart-timeline" style="max-height:350px"></canvas>
+        <div id="timeline-empty" class="empty-state" style="display:none">
+          <i class="fa-regular fa-calendar-plus"></i>
+          <p>Todavía no hay fechas cargadas.<br>
+          Al agregar latas, completá el campo <strong>Fecha de adquisición</strong> para ver la evolución de la colección.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Todos los países -->
+  <div id="stat-paises" class="stat-tab" style="display:none">
+    <div class="panel">
+      <div class="chart-title mb-3"><i class="fa-solid fa-flag"></i>Los <span id="pais-count">0</span> países de la colección</div>
+      <div id="pais-list-container" class="pais-list"></div>
+    </div>
+  </div>
+  <!-- Tab: Sabor -->
+  <div id="stat-sabor" class="stat-tab" style="display:none">
+    <div class="row g-3">
+      <div class="col-md-7">
+        <div class="chart-card" style="height:380px">
+          <div class="chart-title"><i class="fa-solid fa-chart-column"></i>Distribución por sabor (escala hedónica 1-5)</div>
+          <canvas id="chart-sabor" style="max-height:320px"></canvas>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div class="panel" style="height:380px;overflow:auto">
+          <div class="chart-title mb-3"><i class="fa-solid fa-trophy"></i>Top sabores (5 estrellas)</div>
+          <div id="top-sabor-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sec-stats -->
+
+</div><!-- /container -->
+
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL AGREGAR / EDITAR
+════════════════════════════════════════════════════ -->
+<div class="modal fade" id="modalLata" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-title">🍺 Nueva lata</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="f-id">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Marca <span class="text-danger">*</span></label>
+            <input type="text" id="f-marca" class="form-control" placeholder="Ej: Heineken" list="list-marcas">
+            <datalist id="list-marcas"></datalist>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Modelo / Variante</label>
+            <input type="text" id="f-modelo" class="form-control" placeholder="Ej: Light, Strong, 0,0%...">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Tipo de lata</label>
+            <select id="f-tipo" class="form-select">
+              <option value="">Sin especificar</option>
+              <option value="Grande">Grande</option>
+              <option value="Grande 1 lt.">Grande 1 lt.</option>
+              <option value="Botellita">Botellita</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">País <span class="text-danger">*</span></label>
+            <select id="f-pais" class="form-select" onchange="updateFlagPreview()">
+              <option value="">Seleccioná un país…</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Cantidad</label>
+            <input type="number" id="f-cantidad" class="form-control" value="1" min="1">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label"><i class="fa-regular fa-calendar me-1"></i>Fecha de adquisición</label>
+            <input type="date" id="f-fecha" class="form-control">
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <div id="flag-preview" style="font-size:2rem;padding-bottom:4px"></div>
+          </div>
+          <div class="col-md-7">
+            <label class="form-label">Sabor <small class="text-muted">(escala hedónica 1-5)</small></label>
+            <div id="f-sabor-stars" class="fs-3" style="color:var(--cerveza);cursor:pointer;letter-spacing:4px"></div>
+            <input type="hidden" id="f-sabor" value="">
+            <small class="text-muted" id="f-sabor-lbl">Sin calificar</small>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notas / Observaciones</label>
+            <textarea id="f-notas" class="form-control" rows="2" placeholder="Dónde la consiguió, algo especial..."></textarea>
+          </div>
+          <!-- Foto -->
+          <div class="col-12">
+            <label class="form-label"><i class="fa-regular fa-image me-1"></i>Foto de la lata</label>
+            <div id="foto-current" style="display:none;margin-bottom:.5rem">
+              <img id="foto-preview-img" class="foto-preview" alt="foto actual">
+            </div>
+            <div class="foto-placeholder" onclick="document.getElementById('f-foto').click()">
+              <span id="foto-placeholder-txt"><i class="fa-solid fa-camera me-1"></i>Clic para agregar foto</span>
+            </div>
+            <input type="file" id="f-foto" accept="image/*" style="display:none" onchange="previewFoto(this)">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-cerveza" onclick="guardarLata()">
+          <i class="fa-solid fa-floppy-disk me-1"></i>Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL WISHLIST -->
+<div class="modal fade" id="modalWishlist" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="wishlist-modal-title">💗 Nuevo deseo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="w-id">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Marca <span class="text-danger">*</span></label>
+            <input type="text" id="w-marca" class="form-control" placeholder="Ej: Guinness" list="list-marcas">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Modelo / Variante</label>
+            <input type="text" id="w-modelo" class="form-control" placeholder="Ej: Draught, Stout...">
+          </div>
+          <div class="col-12">
+            <label class="form-label">País</label>
+            <select id="w-pais" class="form-select">
+              <option value="">Sin especificar</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Prioridad</label>
+            <select id="w-prioridad" class="form-select">
+              <option value="alta">🔴 Alta</option>
+              <option value="media" selected>🟡 Media</option>
+              <option value="baja">🟢 Baja</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notas</label>
+            <textarea id="w-notas" class="form-control" rows="2" placeholder="Dónde la vio, quién la trae, etc."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-cerveza" onclick="guardarWishlist()">
+          <i class="fa-solid fa-floppy-disk me-1"></i>Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CELULAR -->
+<div class="modal fade" id="modalCelular" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content text-center">
+      <div class="modal-header">
+        <h5 class="modal-title">📱 Acceder desde el celular</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-3">Conectá el celular a la <strong>misma red Wi-Fi</strong> que esta PC y escaneá el código, o entrá manualmente a la dirección de abajo.</p>
+        <img id="qr-img" src="" alt="Código QR" style="width:200px;height:200px;border-radius:10px;box-shadow:var(--shadow)">
+        <div class="mt-3">
+          <code id="lan-url-txt">cargando...</code>
+        </div>
+        <p class="text-muted small mt-3 mb-0"><i class="fa-solid fa-circle-info me-1"></i>Es una dirección local: no sale de tu casa ni requiere internet.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LIGHTBOX (galería) -->
+<div class="modal fade" id="modalLightbox" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-white" id="lightbox-title">🍺</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0">
+        <img id="lightbox-img" src="" alt="Foto de la lata">
+        <div class="d-flex justify-content-center align-items-center gap-3 mt-3">
+          <button class="lightbox-nav-btn" onclick="lightboxNav(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+          <span class="text-white-50 small" id="lightbox-counter"></span>
+          <button class="lightbox-nav-btn" onclick="lightboxNav(1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <button class="btn btn-cerveza mt-3" onclick="lightboxEditar()"><i class="fa-solid fa-pen me-1"></i>Ver / editar ficha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container">
+  <div id="toast" class="toast align-items-center text-white border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body fw-500" id="toast-msg"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Tema claro/oscuro ────────────────────────────────────────────────
+function applyChartTheme() {
+  const dark = document.body.classList.contains('dark');
+  Chart.defaults.color = dark ? '#C2CCD8' : '#666';
+  Chart.defaults.borderColor = dark ? '#3A4656' : '#e5e5e5';
+}
+
+function toggleTheme() {
+  const dark = document.body.classList.toggle('dark');
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+  document.getElementById('theme-toggle-btn').innerHTML =
+    dark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+  applyChartTheme();
+  // Volvemos a dibujar los gráficos con los nuevos colores
+  Object.values(charts).forEach(ch => ch && ch.destroy());
+  for (const k in charts) delete charts[k];
+  if (mapInstance) { try { mapInstance.destroy(); } catch(e) {} mapInstance = null; }
+  if (statsData) {
+    renderDashboardCharts();
+    if (document.getElementById('sec-stats').classList.contains('active')) renderStatTab(currentStatTab);
+  }
+}
+
+// ── Globals ──────────────────────────────────────────────────────────
+let currentPage  = 1;
+const PER_PAGE   = 50;
+let debounceTimer;
+let statsData    = null;
+let opcionesData = null;
+let modalInst;
+let modalWishlistInst;
+let vistaActual  = 'tabla';
+let currentStatTab = 'mapa';
+let mapInstance  = null;
+let modalCelularInst;
+let modalLightboxInst;
+let galeriaPage  = 1;
+const GALERIA_PER_PAGE = 24;
+let galeriaFotos = [];
+let lightboxIdx  = 0;
+
+// Chart instances
+const charts = {};
+
+// ── Boot ──────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  if (document.body.classList.contains('dark')) {
+    document.getElementById('theme-toggle-btn').innerHTML = '<i class="fa-solid fa-sun"></i>';
+  }
+  applyChartTheme();
+  modalInst = new bootstrap.Modal(document.getElementById('modalLata'));
+  modalWishlistInst = new bootstrap.Modal(document.getElementById('modalWishlist'));
+  modalCelularInst = new bootstrap.Modal(document.getElementById('modalCelular'));
+  modalLightboxInst = new bootstrap.Modal(document.getElementById('modalLightbox'));
+  const modalBody = document.querySelector('#modalLata .modal-body');
+  modalBody.addEventListener('input', saveDraft);
+  modalBody.addEventListener('change', saveDraft);
+  try {
+    await Promise.all([loadStats(), loadOpciones(), refreshWishlistBadge()]);
+  } catch (e) {
+    toast('❌ No se pudo cargar la colección. Revisá que el servidor esté corriendo.', 'danger');
+  }
+  document.getElementById('loading').style.display = 'none';
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+});
+
+// ── Navigation ────────────────────────────────────────────────────────
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-link[id^="nav-"]').forEach(l => l.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  const nl = document.getElementById('nav-' + name);
+  if (nl) nl.classList.add('active');
+  if (name === 'coleccion') loadColeccion(1);
+  if (name === 'wishlist')  loadWishlist();
+  if (name === 'galeria')   loadGaleria(1);
+  if (name === 'stats')     renderStatTab(currentStatTab);
+}
+
+// ── Stats Tabs ────────────────────────────────────────────────────────
+function showStatTab(name) {
+  document.querySelectorAll('.stat-tab').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.stat-pill').forEach(b => b.classList.remove('active'));
+  document.getElementById('stat-' + name).style.display = '';
+  document.querySelectorAll('.stat-pill').forEach(b => {
+    if (b.getAttribute('onclick')?.includes(`'${name}'`)) b.classList.add('active');
+  });
+  currentStatTab = name;
+  renderStatTab(name);
+}
+
+function renderStatTab(name) {
+  if (!statsData) return;
+  const d = statsData;
+  switch(name) {
+    case 'mapa':        renderMapa(d);         break;
+    case 'continentes': renderContinentes(d);  break;
+    case 'marcas':      renderMarcas(d);        break;
+    case 'tipos':       renderTipos(d);         break;
+    case 'treemap':     renderTreemap(d);        break;
+    case 'timeline':    renderTimeline(d);       break;
+    case 'paises':      renderPaisesList(d);     break;
+    case 'sabor':       renderSabor(d);          break;
+  }
+}
+
+// ── Load Stats ────────────────────────────────────────────────────────
+async function loadStats() {
+  const r = await fetch('/api/stats');
+  statsData = await r.json();
+  document.getElementById('s-total').textContent   = statsData.total_latas.toLocaleString('es');
+  document.getElementById('s-paises').textContent  = statsData.total_paises;
+  document.getElementById('s-marcas').textContent  = statsData.total_marcas.toLocaleString('es');
+  document.getElementById('s-modelos').textContent = statsData.total_registros.toLocaleString('es');
+  document.getElementById('s-sabor').textContent = statsData.promedio_sabor != null ? statsData.promedio_sabor.toLocaleString('es') : '–';
+  renderDashboardCharts();
+  checkMilestones(statsData);
+}
+
+// ── Gamificación: hitos ──────────────────────────────────────────────
+const MILESTONES_LATAS  = [50, 100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000];
+const MILESTONES_PAISES = [10, 20, 30, 40, 50, 60, 70, 80, 100];
+const MILESTONES_KEY = 'milestones_shown_v1';
+
+function checkMilestones(d) {
+  const alcanzados = [
+    ...MILESTONES_LATAS.filter(m => d.total_latas >= m).map(m => 'latas-' + m),
+    ...MILESTONES_PAISES.filter(m => d.total_paises >= m).map(m => 'paises-' + m),
+  ];
+
+  let shown = null;
+  try { shown = JSON.parse(localStorage.getItem(MILESTONES_KEY)); } catch (e) {}
+
+  if (!Array.isArray(shown)) {
+    // Primera vez que corre esta versión: no festejamos hitos que ya estaban
+    // alcanzados de antes, solo dejamos la marca de agua para el futuro.
+    try { localStorage.setItem(MILESTONES_KEY, JSON.stringify(alcanzados)); } catch (e) {}
+    return;
+  }
+
+  const nuevos = alcanzados.filter(k => !shown.includes(k));
+  if (!nuevos.length) return;
+
+  nuevos.forEach((k, i) => {
+    const [tipo, valStr] = k.split('-');
+    const val = Number(valStr).toLocaleString('es');
+    const msg = tipo === 'latas'
+      ? `🎉 ¡Llegaste a ${val} latas en tu colección!`
+      : `🌍 ¡${val} países representados en tu colección!`;
+    setTimeout(() => toast(msg, 'success'), 700 + i * 1400);
+  });
+  try { localStorage.setItem(MILESTONES_KEY, JSON.stringify(shown.concat(nuevos))); } catch (e) {}
+}
+
+// ── Dashboard Charts ──────────────────────────────────────────────────
+function renderDashboardCharts() {
+  const d = statsData;
+  const COLORS_MULTI = ['#2E6DA4','#D4811A','#2E7D32','#C62828','#6A1B9A','#00838F','#F57F17'];
+
+  destroyChart('chart-paises');
+  charts['chart-paises'] = new Chart(ctx('chart-paises'), {
+    type: 'bar',
+    data: {
+      labels: d.por_pais.map(p => flag(p.iso2) + ' ' + p.pais),
+      datasets: [{
+        data: d.por_pais.map(p => p.total),
+        backgroundColor: d.por_pais.map((_, i) => COLORS_MULTI[i % COLORS_MULTI.length]),
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { stepSize: 1 } } }
+    }
+  });
+
+  destroyChart('chart-tipo');
+  const colores = ['#2E6DA4','#D4811A','#2E7D32','#C62828'];
+  charts['chart-tipo'] = new Chart(ctx('chart-tipo'), {
+    type: 'doughnut',
+    data: {
+      labels: d.por_tipo.map(t => t.tipo),
+      datasets: [{ data: d.por_tipo.map(t => t.total), backgroundColor: colores, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+    }
+  });
+}
+
+// ── World Map ─────────────────────────────────────────────────────────
+// El "scale" numérico de jsvectormap interpola mal (regiones en negro), así
+// que calculamos el color de cada país a mano con un degradé arcoíris
+// (violeta = menos latas → rojo = más latas) y lo aplicamos con setColors().
+// ratio 0..1  →  violeta(270°) ... azul ... verde ... amarillo ... rojo(0°)
+function rainbowColor(ratio) {
+  ratio = Math.max(0, Math.min(1, ratio));
+  const hue   = 270 * (1 - ratio);          // 270=violeta, 0=rojo
+  const sat   = 80;
+  const light = 50;
+  const alpha = 0.35 + 0.6 * ratio;          // más transparente = menos latas, más contraste arriba
+  return `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
+}
+
+// Pinta cada <path> del SVG del mapa según su código de país (data-code)
+function paintMapColors(colors) {
+  document.querySelectorAll('#world-map path[data-code]').forEach(path => {
+    const code = path.getAttribute('data-code');
+    if (colors[code]) path.style.fill = colors[code];
+  });
+}
+
+function renderMapa(d) {
+  if (mapInstance) {
+    try { mapInstance.destroy(); } catch(e) {}
+    document.getElementById('world-map').innerHTML = '';
+    mapInstance = null;
+  }
+
+  // jsvectormap world.js usa códigos ISO2 en MAYÚSCULAS ('AR', 'BR', 'DE'...)
+  const values = {};
+  Object.entries(d.map_data).forEach(([k, v]) => { values[k.toUpperCase()] = v; });
+
+  const nums   = Object.values(values);
+  const minVal = nums.length ? Math.min(...nums) : 0;
+  const maxVal = nums.length ? Math.max(...nums) : 1;
+
+  const colors = {};
+  Object.entries(values).forEach(([code, v]) => {
+    const ratio = maxVal > minVal ? (v - minVal) / (maxVal - minVal) : 1;
+    colors[code] = rainbowColor(ratio);
+  });
+
+  try {
+    mapInstance = new jsVectorMap({
+      selector: '#world-map',
+      map: 'world',
+      backgroundColor: '#F0F4F8',
+      zoomOnScroll: true,
+      regionStyle: {
+        initial: { fill: '#D0D7DE', stroke: '#fff', strokeWidth: 0.5 },
+        hover:   { fillOpacity: 0.85, cursor: 'pointer' },
+      },
+      onRegionTooltipShow(event, tooltip, code) {
+        const pais = d.todos_paises.find(p => p.iso2 && p.iso2.toUpperCase() === code.toUpperCase());
+        if (pais) {
+          tooltip.text(`${flagImg(pais.iso2, 16)} <strong>${pais.pais}</strong>: ${pais.total} lata${pais.total !== 1 ? 's' : ''}`, true);
+        }
+      },
+    });
+  } catch(e) {
+    document.getElementById('world-map').innerHTML =
+      `<div class="empty-state"><i class="fa-solid fa-map"></i>
+       <p>El mapa necesita conexión a internet la primera vez.<br>Verificá tu conexión y recargá la página.</p></div>`;
+    return;
+  }
+
+  // Pintamos cada país directamente en el SVG (más confiable que las APIs
+  // de color de jsvectormap, que en esta versión no funcionan bien)
+  paintMapColors(colors);
+
+  // Leyenda arcoíris (violeta = menos, rojo = más)
+  const stops = [];
+  for (let i = 0; i <= 10; i++) stops.push(rainbowColor(i / 10));
+  document.getElementById('map-legend').innerHTML = `
+    <span style="font-size:.8rem;color:#555;font-weight:600">Menos latas</span>
+    <div style="background:linear-gradient(to right,${stops.join(',')});width:200px;height:14px;border-radius:8px;border:1px solid #ddd"></div>
+    <span style="font-size:.8rem;color:#555;font-weight:600">Más latas</span>
+    <span style="font-size:.78rem;color:#aaa;margin-left:.8rem">⬜ = sin latas</span>`;
+}
+
+// ── Continentes ───────────────────────────────────────────────────────
+function renderContinentes(d) {
+  const COLORS = ['#2E6DA4','#D4811A','#2E7D32','#C62828','#6A1B9A','#00838F','#F57F17'];
+
+  destroyChart('chart-continentes-pie');
+  charts['chart-continentes-pie'] = new Chart(ctx('chart-continentes-pie'), {
+    type: 'pie',
+    data: {
+      labels: d.por_continente.map(c => c.continente),
+      datasets: [{ data: d.por_continente.map(c => c.total), backgroundColor: COLORS, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } }
+    }
+  });
+
+  destroyChart('chart-continentes-bar');
+  charts['chart-continentes-bar'] = new Chart(ctx('chart-continentes-bar'), {
+    type: 'bar',
+    data: {
+      labels: d.por_continente.map(c => c.continente),
+      datasets: [{
+        label: 'Latas',
+        data: d.por_continente.map(c => c.total),
+        backgroundColor: COLORS,
+        borderRadius: 8,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { stepSize: 50 } } }
+    }
+  });
+}
+
+// ── Marcas ────────────────────────────────────────────────────────────
+function renderMarcas(d) {
+  destroyChart('chart-marcas');
+  charts['chart-marcas'] = new Chart(ctx('chart-marcas'), {
+    type: 'bar',
+    data: {
+      labels: d.por_marca.map(m => m.marca),
+      datasets: [{
+        data: d.por_marca.map(m => m.total),
+        backgroundColor: '#1A3C5E',
+        hoverBackgroundColor: '#D4811A',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { stepSize: 1 } } }
+    }
+  });
+}
+
+// ── Tipos ─────────────────────────────────────────────────────────────
+function renderTipos(d) {
+  const COLORS = ['#2E6DA4','#D4811A','#2E7D32','#888'];
+
+  destroyChart('chart-tipos-donut');
+  charts['chart-tipos-donut'] = new Chart(ctx('chart-tipos-donut'), {
+    type: 'doughnut',
+    data: {
+      labels: d.por_tipo.map(t => t.tipo),
+      datasets: [{ data: d.por_tipo.map(t => t.total), backgroundColor: COLORS, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  destroyChart('chart-tipos-bar');
+  charts['chart-tipos-bar'] = new Chart(ctx('chart-tipos-bar'), {
+    type: 'bar',
+    data: {
+      labels: d.por_tipo.map(t => t.tipo),
+      datasets: [{
+        label: 'Latas',
+        data: d.por_tipo.map(t => t.total),
+        backgroundColor: COLORS,
+        borderRadius: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+    }
+  });
+}
+
+// ── Treemap ───────────────────────────────────────────────────────────
+function renderTreemap(d) {
+  destroyChart('chart-treemap');
+  const max = Math.max(...d.treemap.map(t => t.total), 1);
+  charts['chart-treemap'] = new Chart(ctx('chart-treemap'), {
+    type: 'treemap',
+    data: {
+      datasets: [{
+        label: 'Marcas',
+        data: d.treemap.map(t => ({ marca: t.marca, v: t.total })),
+        key: 'v',
+        backgroundColor(c) {
+          const v = c.raw?.v ?? 0;
+          const ratio = v / max;
+          const r = Math.round(26 + ratio * (46 - 26));
+          const g = Math.round(60 + ratio * (109 - 60));
+          const b = Math.round(94 + ratio * (164 - 94));
+          return `rgba(${r},${g},${b},${0.5 + 0.5 * ratio})`;
+        },
+        labels: {
+          display: true,
+          align: 'left',
+          position: 'top',
+          padding: 4,
+          color: ['#fff'],
+          font: [{ size: 11, weight: 'bold' }],
+          formatter(c) {
+            if (!c.raw) return '';
+            return c.raw.v > 1 ? [c.raw.marca, c.raw.v + ' latas'] : [c.raw.marca];
+          }
+        },
+        borderWidth: 1,
+        borderColor: '#fff',
+        spacing: 1,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: () => '',
+            label: c => ` ${c.raw?.marca}: ${c.raw?.v} lata${c.raw?.v !== 1 ? 's' : ''}`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Timeline ──────────────────────────────────────────────────────────
+function renderTimeline(d) {
+  if (!d.timeline.length) {
+    document.getElementById('chart-timeline').style.display = 'none';
+    document.getElementById('timeline-empty').style.display = '';
+    return;
+  }
+  document.getElementById('chart-timeline').style.display = '';
+  document.getElementById('timeline-empty').style.display = 'none';
+
+  // Build cumulative
+  let acum = 0;
+  const labels = [], vals = [], acums = [];
+  d.timeline.forEach(t => {
+    const [y, m] = t.mes.split('-');
+    labels.push(`${m}/${y}`);
+    vals.push(t.total);
+    acum += t.total;
+    acums.push(acum);
+  });
+
+  destroyChart('chart-timeline');
+  charts['chart-timeline'] = new Chart(ctx('chart-timeline'), {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar', label: 'Latas agregadas',
+          data: vals, backgroundColor: 'rgba(46,109,164,.6)', borderRadius: 4, yAxisID: 'y',
+        },
+        {
+          type: 'line', label: 'Total acumulado',
+          data: acums, borderColor: '#D4811A', backgroundColor: 'transparent',
+          borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#D4811A', yAxisID: 'y2',
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y:  { title: { display: true, text: 'Agregadas por mes' } },
+        y2: { position: 'right', title: { display: true, text: 'Total acumulado' },
+               grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+}
+
+// ── Sabor ─────────────────────────────────────────────────────────────
+function renderSabor(d) {
+  destroyChart('chart-sabor');
+  const COLORS = ['#C62828','#fc8d59','#fee090','#91bfdb','#2E7D32'];
+  charts['chart-sabor'] = new Chart(ctx('chart-sabor'), {
+    type: 'bar',
+    data: {
+      labels: d.por_sabor.map(s => '★'.repeat(s.sabor) + '☆'.repeat(5 - s.sabor)),
+      datasets: [{
+        label: 'Latas',
+        data: d.por_sabor.map(s => s.total),
+        backgroundColor: COLORS,
+        borderRadius: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { ticks: { stepSize: 1 } } }
+    }
+  });
+
+  const list = document.getElementById('top-sabor-list');
+  if (!d.top_sabor.length) {
+    list.innerHTML = `<div class="empty-state"><i class="fa-regular fa-star"></i><p>Todavía no calificaste ninguna lata.<br>Editá una lata y elegí su sabor (1-5 ★).</p></div>`;
+    return;
+  }
+  list.innerHTML = d.top_sabor.map(s => {
+    const iso = (statsData.todos_paises.find(p => p.pais === s.pais) || {}).iso2 || '';
+    return `<div class="pais-item">
+      <span class="pais-name">${flagImg(iso)} <strong>${esc(s.marca)}</strong> ${esc(s.modelo || '')}</span>
+      ${saborStars(s.sabor)}
+    </div>`;
+  }).join('');
+}
+
+// ── Lista de países ────────────────────────────────────────────────────
+function renderPaisesList(d) {
+  document.getElementById('pais-count').textContent = d.todos_paises.length;
+  document.getElementById('pais-list-container').innerHTML =
+    d.todos_paises.map(p =>
+      `<div class="pais-item">
+        <span class="pais-name">${flagImg(p.iso2)} ${esc(p.pais)}</span>
+        <span class="pais-badge">${p.total}</span>
+      </div>`
+    ).join('');
+}
+
+// ── Colección ──────────────────────────────────────────────────────────
+async function loadColeccion(page = 1) {
+  currentPage  = page;
+  const q          = document.getElementById('filtro-q').value;
+  const pais       = document.getElementById('filtro-pais').value;
+  const tipo       = document.getElementById('filtro-tipo').value;
+  const continente = document.getElementById('filtro-continente').value;
+  const saborMin   = document.getElementById('filtro-sabor').value;
+
+  const url = `/api/latas?q=${enc(q)}&pais=${enc(pais)}&tipo=${enc(tipo)}&continente=${enc(continente)}&sabor_min=${enc(saborMin)}&page=${page}&per_page=${PER_PAGE}`;
+  const r = await fetch(url);
+  const data = await r.json();
+
+  vistaActual === 'tabla' ? renderTabla(data.data) : renderTarjetas(data.data);
+  renderPaginacion(data.total, page);
+  document.getElementById('col-total-lbl').textContent =
+    `${data.total.toLocaleString('es')} resultado${data.total !== 1 ? 's' : ''}`;
+}
+
+function renderTabla(rows) {
+  const tbody = document.getElementById('tbody-latas');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-box-open"></i><p>No se encontraron latas</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr onclick="editarLata(${r.id})">
+      <td><strong>${esc(r.marca)}</strong></td>
+      <td class="text-muted">${esc(r.modelo || '–')}</td>
+      <td><span class="badge-tipo ${tipoCls(r.tipo_lata)}">${esc(r.tipo_lata || 'Sin especificar')}</span></td>
+      <td>${flagImg(r.iso2)} ${esc(r.pais || '–')}</td>
+      <td class="text-center" onclick="event.stopPropagation()">${saborStarsInline(r.id, r.sabor)}</td>
+      <td class="text-center fw-bold">${r.cantidad}</td>
+      <td class="text-muted" style="font-size:.82rem">${r.fecha_adquisicion ? fmtDate(r.fecha_adquisicion) : '–'}</td>
+      <td class="text-center" onclick="event.stopPropagation()">
+        <button class="btn-edit me-1" onclick="editarLata(${r.id})"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn-del" onclick="borrarLata(${r.id}, event)"><i class="fa-solid fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderTarjetas(rows) {
+  const grid = document.getElementById('grid-tarjetas');
+  if (!rows.length) {
+    grid.innerHTML = `<div class="col-12"><div class="empty-state"><i class="fa-solid fa-box-open"></i><p>No se encontraron latas</p></div></div>`;
+    return;
+  }
+  const bgPalette = ['#1A3C5E','#2E6DA4','#D4811A','#2E7D32','#C62828','#6A1B9A','#00838F'];
+  grid.innerHTML = rows.map((r, i) => {
+    const bg = bgPalette[i % bgPalette.length];
+    const fotoHtml = r.foto_path
+      ? `<img src="${esc(r.foto_path)}?t=${Date.now()}" onerror="this.style.display='none'">`
+      : '';
+    return `
+    <div class="col-6 col-md-4 col-lg-3">
+      <div class="lata-card" onclick="editarLata(${r.id})" style="cursor:pointer">
+        <div class="lata-photo" style="background:linear-gradient(135deg,${bg}cc,${bg}88)">
+          ${fotoHtml}
+          <span class="ph-emoji">${r.foto_path ? '' : '🍺'}</span>
+        </div>
+        <div class="lata-body">
+          <div class="lata-marca">${esc(r.marca)}</div>
+          <div class="lata-modelo">${esc(r.modelo || '')}</div>
+          <div class="mt-1"><span class="badge-tipo ${tipoCls(r.tipo_lata)}">${esc(r.tipo_lata || 'Sin especificar')}</span></div>
+        </div>
+        <div class="lata-footer">
+          <span class="flag-lbl">${flagImg(r.iso2)} ${esc(r.pais || '–')}</span>
+          ${r.cantidad > 1 ? `<span class="cant-badge">×${r.cantidad}</span>` : ''}
+        </div>
+        <div class="text-center pb-2" onclick="event.stopPropagation()">${saborStarsInline(r.id, r.sabor)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setVista(v) {
+  vistaActual = v;
+  document.getElementById('vista-tabla').style.display    = v === 'tabla'    ? '' : 'none';
+  document.getElementById('vista-tarjetas').style.display = v === 'tarjetas' ? '' : 'none';
+  document.getElementById('btn-vista-tabla').classList.toggle('active',    v === 'tabla');
+  document.getElementById('btn-vista-tarjetas').classList.toggle('active', v === 'tarjetas');
+  loadColeccion(currentPage);
+}
+
+function renderPaginacion(total, page) {
+  const pages  = Math.ceil(total / PER_PAGE);
+  const offset = (page - 1) * PER_PAGE;
+  document.getElementById('pag-info').textContent =
+    `Mostrando ${offset + 1}–${Math.min(offset + PER_PAGE, total)} de ${total}`;
+  const ul = document.getElementById('paginacion');
+  ul.innerHTML = '';
+  const addP = (lbl, p, disabled = false, active = false) => {
+    const li = document.createElement('li');
+    li.className = `page-item${disabled?' disabled':''}${active?' active':''}`;
+    li.innerHTML = `<a class="page-link" href="#" onclick="loadColeccion(${p});return false">${lbl}</a>`;
+    ul.appendChild(li);
+  };
+  addP('«', page - 1, page === 1);
+  const s = Math.max(1, page - 2), e = Math.min(pages, page + 2);
+  for (let i = s; i <= e; i++) addP(i, i, false, i === page);
+  addP('»', page + 1, page === pages);
+}
+
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => loadColeccion(1), 300);
+}
+
+function limpiarFiltros() {
+  ['filtro-q','filtro-pais','filtro-tipo','filtro-continente','filtro-sabor'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  loadColeccion(1);
+}
+
+// ── Opciones ──────────────────────────────────────────────────────────
+async function loadOpciones() {
+  const r = await fetch('/api/opciones');
+  opcionesData = await r.json();
+
+  // Continente filter
+  const fCont = document.getElementById('filtro-continente');
+  opcionesData.continentes.forEach(c => fCont.add(new Option(c, c)));
+
+  // País filter (dropdown de la sección Colección: solo países ya usados)
+  const fPais = document.getElementById('filtro-pais');
+  opcionesData.paises.forEach(p => fPais.add(new Option(flag(p.iso2) + ' ' + p.pais, p.pais)));
+
+  // Tipo filter
+  const fTipo = document.getElementById('filtro-tipo');
+  opcionesData.tipos.forEach(t => fTipo.add(new Option(t, t)));
+
+  // Select estricto de país para los formularios: catálogo completo (para poder
+  // sumar países nuevos a la colección) + cualquier país ya usado que no esté
+  // en el catálogo (por si quedó algo del import original de Excel).
+  const catalogo = [...opcionesData.paises_catalogo];
+  const nombresCatalogo = new Set(catalogo.map(p => p.pais));
+  opcionesData.paises.forEach(p => { if (!nombresCatalogo.has(p.pais)) catalogo.push(p); });
+  catalogo.sort((a, b) => a.pais.localeCompare(b.pais, 'es'));
+
+  const opcionesPais = catalogo.map(p => `<option value="${esc(p.pais)}">${flag(p.iso2)} ${esc(p.pais)}</option>`).join('');
+  document.getElementById('f-pais').insertAdjacentHTML('beforeend', opcionesPais);
+  document.getElementById('w-pais').insertAdjacentHTML('beforeend', opcionesPais);
+
+  // Datalist de marcas (sigue siendo texto libre, a propósito)
+  document.getElementById('list-marcas').innerHTML =
+    opcionesData.marcas.map(m => `<option value="${esc(m)}">`).join('');
+}
+
+function filtrarPorContinente() {
+  const cont = document.getElementById('filtro-continente').value;
+  // Reset country filter when continent changes
+  document.getElementById('filtro-pais').value = '';
+  loadColeccion(1);
+}
+
+// ── Modal CRUD ────────────────────────────────────────────────────────
+function openModal(lata = null) {
+  document.getElementById('f-id').value       = lata?.id       || '';
+  document.getElementById('f-marca').value    = lata?.marca    || '';
+  document.getElementById('f-modelo').value   = lata?.modelo   || '';
+  document.getElementById('f-tipo').value     = lata?.tipo_lata || '';
+  setSelectValue('f-pais', lata?.pais || '');
+  document.getElementById('f-cantidad').value = lata?.cantidad || 1;
+  document.getElementById('f-notas').value    = lata?.notas    || '';
+  document.getElementById('f-fecha').value    = lata?.fecha_adquisicion || '';
+  document.getElementById('f-foto').value     = '';
+  setSaborPicker(lata?.sabor || 0);
+
+  // Foto preview
+  const hasFoto = lata?.foto_path;
+  document.getElementById('foto-current').style.display = hasFoto ? '' : 'none';
+  if (hasFoto) {
+    document.getElementById('foto-preview-img').src = lata.foto_path + '?t=' + Date.now();
+    document.getElementById('foto-preview-img').style.display = 'block';
+  }
+  document.getElementById('foto-placeholder-txt').innerHTML =
+    hasFoto ? '<i class="fa-solid fa-camera me-1"></i>Cambiar foto' :
+              '<i class="fa-solid fa-camera me-1"></i>Clic para agregar foto';
+
+  document.getElementById('modal-title').innerHTML =
+    lata ? '✏️ Editar lata' : '🍺 Nueva lata';
+
+  updateFlagPreview();
+  modalInst.show();
+  restoreDraftIfAny(lata);
+}
+
+async function editarLata(id) {
+  const r = await fetch(`/api/latas/${id}`);
+  openModal(await r.json());
+}
+
+async function guardarLata() {
+  const marca = document.getElementById('f-marca').value.trim();
+  const pais  = document.getElementById('f-pais').value.trim();
+  if (!marca) { toast('Ingresá la marca de la lata', 'danger'); return; }
+  if (!pais)  { toast('Ingresá el país de origen', 'danger'); return; }
+
+  const id = document.getElementById('f-id').value;
+  const body = {
+    marca,
+    modelo:            document.getElementById('f-modelo').value.trim(),
+    tipo_lata:         document.getElementById('f-tipo').value,
+    pais,
+    cantidad:          parseInt(document.getElementById('f-cantidad').value) || 1,
+    notas:             document.getElementById('f-notas').value.trim(),
+    fecha_adquisicion: document.getElementById('f-fecha').value || null,
+    sabor:             parseInt(document.getElementById('f-sabor').value) || null,
+  };
+
+  let res, data;
+  try {
+    res  = await fetch(id ? `/api/latas/${id}` : '/api/latas',
+      { method: id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    data = await res.json();
+  } catch (e) {
+    toast('❌ No se pudo conectar con el servidor', 'danger');
+    return;
+  }
+
+  let newId = id;
+
+  if (res.status === 409 && data.duplicate) {
+    const sumar = confirm(
+      `Ya tenés "${marca}${body.modelo ? ' - ' + body.modelo : ''}" de ${pais} ` +
+      `(cantidad actual: ${data.existing_cantidad}).\n\n` +
+      `Aceptar = sumar ${body.cantidad} a esa lata.\n` +
+      `Cancelar = crear un registro nuevo de todas formas.`
+    );
+    if (sumar) {
+      const gr = await fetch(`/api/latas/${data.existing_id}`);
+      const existente = await gr.json();
+      existente.cantidad = (existente.cantidad || 0) + body.cantidad;
+      res  = await fetch(`/api/latas/${existente.id}`,
+        { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(existente) });
+      data = await res.json();
+      if (!res.ok) { toast('❌ ' + (data.error || 'Error al guardar'), 'danger'); return; }
+      newId = existente.id;
+      clearDraft();
+      modalInst.hide();
+      toast(`✅ Se sumó a la lata existente (ahora: ${existente.cantidad})`, 'success');
+      await loadStats();
+      if (document.getElementById('sec-coleccion').classList.contains('active')) loadColeccion(currentPage);
+      return;
+    }
+    body.force = true;
+    res  = await fetch('/api/latas',
+      { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    data = await res.json();
+  }
+
+  if (!res.ok) {
+    toast('❌ ' + (data.error || 'Error al guardar'), 'danger');
+    return;
+  }
+
+  newId = id || data.id;
+
+  // Upload photo if selected
+  const fotoFile = document.getElementById('f-foto').files[0];
+  if (fotoFile && newId) {
+    const fd = new FormData();
+    fd.append('foto', fotoFile);
+    const fr = await fetch(`/api/latas/${newId}/foto`, { method: 'POST', body: fd });
+    if (!fr.ok) {
+      const fdata = await fr.json().catch(() => ({}));
+      toast('⚠️ Lata guardada, pero la foto falló: ' + (fdata.error || ''), 'warning');
+    }
+  }
+
+  clearDraft();
+  modalInst.hide();
+  toast(id ? '✅ Lata actualizada' : '🍺 ¡Lata agregada!', 'success');
+  await loadStats();
+  if (document.getElementById('sec-coleccion').classList.contains('active')) loadColeccion(currentPage);
+}
+
+async function borrarLata(id, ev) {
+  ev.stopPropagation();
+  if (!confirm('¿Borrar esta lata de la colección?')) return;
+  try {
+    const r = await fetch(`/api/latas/${id}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error();
+  } catch (e) {
+    toast('❌ No se pudo borrar la lata', 'danger');
+    return;
+  }
+  toast('🗑️ Lata eliminada', 'warning');
+  await loadStats();
+  loadColeccion(currentPage);
+}
+
+// ── Wishlist (latas deseadas) ──────────────────────────────────────────
+const PRIORIDAD_LBL = { alta: '🔴 Alta', media: '🟡 Media', baja: '🟢 Baja' };
+
+async function refreshWishlistBadge() {
+  try {
+    const r = await fetch('/api/wishlist');
+    const data = await r.json();
+    const badge = document.getElementById('nav-wishlist-badge');
+    if (data.data.length) {
+      badge.textContent = data.data.length;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+    return data.data;
+  } catch (e) { return []; }
+}
+
+async function loadWishlist() {
+  let data;
+  try {
+    const r = await fetch('/api/wishlist');
+    data = (await r.json()).data;
+  } catch (e) {
+    toast('❌ No se pudo cargar la lista de deseos', 'danger');
+    return;
+  }
+
+  const grid = document.getElementById('grid-wishlist');
+  document.getElementById('wishlist-empty').style.display = data.length ? 'none' : '';
+
+  grid.innerHTML = data.map(w => `
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="lata-card">
+        <div class="lata-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="lata-marca">${esc(w.marca)}</div>
+            <span class="badge-tipo" style="background:var(--surface-2);color:var(--text-soft)">${PRIORIDAD_LBL[w.prioridad] || w.prioridad}</span>
+          </div>
+          <div class="lata-modelo">${esc(w.modelo || '')}</div>
+          <div class="flag-lbl mt-1">${flagImg(w.iso2, 16)} ${esc(w.pais || 'Sin especificar')}</div>
+          ${w.notas ? `<div class="text-muted small mt-2"><i class="fa-regular fa-note-sticky me-1"></i>${esc(w.notas)}</div>` : ''}
+        </div>
+        <div class="lata-footer">
+          <button class="btn btn-sm btn-cerveza" onclick="conseguirWishlist(${w.id})" title="Pasar a la colección">
+            <i class="fa-solid fa-check me-1"></i>¡La conseguí!
+          </button>
+          <div>
+            <button class="btn-edit" onclick="editarWishlist(${w.id})"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn-del ms-1" onclick="borrarWishlist(${w.id}, event)"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  refreshWishlistBadge();
+}
+
+function openWishlistModal(item = null) {
+  document.getElementById('w-id').value        = item?.id        || '';
+  document.getElementById('w-marca').value     = item?.marca     || '';
+  document.getElementById('w-modelo').value    = item?.modelo    || '';
+  setSelectValue('w-pais', item?.pais || '');
+  document.getElementById('w-prioridad').value = item?.prioridad || 'media';
+  document.getElementById('w-notas').value     = item?.notas     || '';
+  document.getElementById('wishlist-modal-title').innerHTML =
+    item ? '✏️ Editar deseo' : '💗 Nuevo deseo';
+  modalWishlistInst.show();
+}
+
+async function editarWishlist(id) {
+  const r = await fetch('/api/wishlist');
+  const data = (await r.json()).data;
+  const item = data.find(w => w.id === id);
+  if (item) openWishlistModal(item);
+}
+
+async function guardarWishlist() {
+  const marca = document.getElementById('w-marca').value.trim();
+  if (!marca) { toast('Ingresá la marca de la lata deseada', 'danger'); return; }
+
+  const id = document.getElementById('w-id').value;
+  const body = {
+    marca,
+    modelo:    document.getElementById('w-modelo').value.trim(),
+    pais:      document.getElementById('w-pais').value.trim(),
+    prioridad: document.getElementById('w-prioridad').value,
+    notas:     document.getElementById('w-notas').value.trim(),
+  };
+
+  let res, data;
+  try {
+    res  = await fetch(id ? `/api/wishlist/${id}` : '/api/wishlist',
+      { method: id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    data = await res.json();
+  } catch (e) {
+    toast('❌ No se pudo conectar con el servidor', 'danger');
+    return;
+  }
+  if (!res.ok) {
+    toast('❌ ' + (data.error || 'Error al guardar'), 'danger');
+    return;
+  }
+
+  modalWishlistInst.hide();
+  toast(id ? '✅ Deseo actualizado' : '💗 ¡Agregado a la lista de deseos!', 'success');
+  loadWishlist();
+}
+
+async function borrarWishlist(id, ev) {
+  ev.stopPropagation();
+  if (!confirm('¿Quitar esta lata de la lista de deseos?')) return;
+  try {
+    const r = await fetch(`/api/wishlist/${id}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error();
+  } catch (e) {
+    toast('❌ No se pudo quitar el deseo', 'danger');
+    return;
+  }
+  toast('🗑️ Quitado de la lista de deseos', 'warning');
+  loadWishlist();
+}
+
+async function conseguirWishlist(id) {
+  if (!confirm('¿Marcar esta lata como conseguida? Se agregará a tu colección.')) return;
+  let res, data;
+  try {
+    res  = await fetch(`/api/wishlist/${id}/conseguir`, { method: 'POST' });
+    data = await res.json();
+  } catch (e) {
+    toast('❌ No se pudo conectar con el servidor', 'danger');
+    return;
+  }
+  if (!res.ok) {
+    toast('❌ ' + (data.error || 'Error al actualizar'), 'danger');
+    return;
+  }
+  toast('🍺 ¡Felicitaciones! Se agregó a tu colección', 'success');
+  await loadStats();
+  loadWishlist();
+}
+
+// ── Export ────────────────────────────────────────────────────────────
+function exportar() {
+  const a = document.createElement('a');
+  a.href = '/api/exportar'; a.download = ''; a.click();
+  toast('📥 Generando Excel...', 'info');
+}
+
+function exportarWishlist() {
+  const a = document.createElement('a');
+  a.href = '/api/wishlist/exportar'; a.download = ''; a.click();
+  toast('📥 Generando Excel de la lista de deseos...', 'info');
+}
+
+function backup() {
+  const a = document.createElement('a');
+  a.href = '/api/backup'; a.download = ''; a.click();
+  toast('💾 Generando copia de seguridad...', 'info');
+}
+
+async function restoreBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const totalActual = statsData?.total_latas ?? '?';
+  const confirmado = confirm(
+    `⚠️ Esto va a REEMPLAZAR toda tu colección actual (${totalActual} latas) ` +
+    `con el contenido de "${file.name}".\n\n` +
+    `Se guarda una copia de seguridad del estado actual antes de reemplazar, por las dudas.\n\n` +
+    `¿Confirmás que querés restaurar este backup?`
+  );
+  if (!confirmado) { input.value = ''; return; }
+
+  let res, data;
+  const fd = new FormData();
+  fd.append('backup', file);
+  try {
+    res  = await fetch('/api/restore', { method: 'POST', body: fd });
+    data = await res.json();
+  } catch (e) {
+    toast('❌ No se pudo conectar con el servidor', 'danger');
+    input.value = ''; return;
+  }
+  if (!res.ok) {
+    toast('❌ ' + (data.error || 'Error al restaurar'), 'danger');
+    input.value = ''; return;
+  }
+  toast('✅ Backup restaurado. Recargando...', 'success');
+  setTimeout(() => location.reload(), 1200);
+}
+
+// ── Sincronizar con el buzón en la nube ────────────────────────────────
+async function syncPendientes() {
+  toast('☁️ Sincronizando con el buzón...', 'info');
+  let res, data;
+  try {
+    res  = await fetch('/api/sync', { method: 'POST' });
+    data = await res.json();
+  } catch (e) {
+    toast('❌ No se pudo conectar con el servidor', 'danger');
+    return;
+  }
+  if (!res.ok) {
+    toast('❌ ' + (data.error || 'Error al sincronizar'), 'danger');
+    return;
+  }
+  if (data.importados === 0) {
+    toast('☁️ No había nada nuevo en el buzón', 'info');
+    return;
+  }
+  toast(`✅ Se importaron ${data.importados} lata${data.importados !== 1 ? 's' : ''} del celular: ${data.detalle.join(', ')}`, 'success');
+  await loadStats();
+  if (document.getElementById('sec-coleccion').classList.contains('active')) loadColeccion(currentPage);
+}
+
+// ── Acceso desde el celular ──────────────────────────────────────────
+function abrirModalCelular() {
+  document.getElementById('qr-img').src = '/api/qr?t=' + Date.now();
+  document.getElementById('lan-url-txt').textContent = 'cargando...';
+  fetch('/api/lan-info').then(r => r.json()).then(d => {
+    document.getElementById('lan-url-txt').textContent = d.url;
+  }).catch(() => {
+    document.getElementById('lan-url-txt').textContent = 'No se pudo obtener la dirección.';
+  });
+  modalCelularInst.show();
+}
+
+// ── Galería de fotos ──────────────────────────────────────────────────
+async function loadGaleria(page = 1) {
+  galeriaPage = page;
+  const url = `/api/latas?con_foto=1&page=${page}&per_page=${GALERIA_PER_PAGE}`;
+  const r = await fetch(url);
+  const data = await r.json();
+  galeriaFotos = data.data;
+  renderGaleria(data.data);
+  renderGaleriaPaginacion(data.total, page);
+  document.getElementById('galeria-total-lbl').textContent =
+    `${data.total.toLocaleString('es')} foto${data.total !== 1 ? 's' : ''}`;
+}
+
+function renderGaleria(rows) {
+  const grid = document.getElementById('grid-galeria');
+  document.getElementById('galeria-empty').style.display = rows.length ? 'none' : '';
+  grid.innerHTML = rows.map((r, i) => `
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="galeria-thumb" onclick="openLightbox(${i})">
+        <img src="${esc(r.foto_path)}?t=${Date.now()}" loading="lazy" alt="${esc(r.marca)}">
+        <div class="galeria-cap">
+          <strong>${esc(r.marca)}</strong>${esc(r.pais || '')}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderGaleriaPaginacion(total, page) {
+  const pages  = Math.ceil(total / GALERIA_PER_PAGE);
+  const offset = (page - 1) * GALERIA_PER_PAGE;
+  document.getElementById('galeria-pag-info').textContent =
+    total ? `Mostrando ${offset + 1}–${Math.min(offset + GALERIA_PER_PAGE, total)} de ${total}` : '';
+  const ul = document.getElementById('galeria-paginacion');
+  ul.innerHTML = '';
+  const addP = (lbl, p, disabled = false, active = false) => {
+    const li = document.createElement('li');
+    li.className = `page-item${disabled?' disabled':''}${active?' active':''}`;
+    li.innerHTML = `<a class="page-link" href="#" onclick="loadGaleria(${p});return false">${lbl}</a>`;
+    ul.appendChild(li);
+  };
+  addP('«', page - 1, page === 1);
+  const s = Math.max(1, page - 2), e = Math.min(pages, page + 2);
+  for (let i = s; i <= e; i++) addP(i, i, false, i === page);
+  addP('»', page + 1, page === pages);
+}
+
+function openLightbox(idx) {
+  lightboxIdx = idx;
+  renderLightbox();
+  modalLightboxInst.show();
+}
+
+function renderLightbox() {
+  const r = galeriaFotos[lightboxIdx];
+  if (!r) return;
+  document.getElementById('lightbox-img').src = r.foto_path + '?t=' + Date.now();
+  document.getElementById('lightbox-title').innerHTML =
+    `${esc(r.marca)} ${esc(r.modelo || '')} — ${flagImg(r.iso2)} ${esc(r.pais || '')}`;
+  document.getElementById('lightbox-counter').textContent = `${lightboxIdx + 1} / ${galeriaFotos.length}`;
+}
+
+function lightboxNav(dir) {
+  lightboxIdx = (lightboxIdx + dir + galeriaFotos.length) % galeriaFotos.length;
+  renderLightbox();
+}
+
+function lightboxEditar() {
+  const r = galeriaFotos[lightboxIdx];
+  if (!r) return;
+  modalLightboxInst.hide();
+  editarLata(r.id);
+}
+
+// ── Foto preview in modal ─────────────────────────────────────────────
+function previewFoto(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('foto-preview-img').src = e.target.result;
+    document.getElementById('foto-preview-img').style.display = 'block';
+    document.getElementById('foto-current').style.display = '';
+    document.getElementById('foto-placeholder-txt').innerHTML =
+      '<i class="fa-solid fa-check me-1 text-success"></i>Foto seleccionada';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function updateFlagPreview() {
+  const pais = document.getElementById('f-pais').value.trim();
+  const iso = (opcionesData?.paises_catalogo || []).find(p => p.pais === pais)?.iso2 || '';
+  document.getElementById('flag-preview').innerHTML = iso ? flagImg(iso, 22) : '';
+}
+
+// Selecciona `valor` en un <select>; si el valor no está entre las opciones
+// (por ejemplo un país viejo que no está en el catálogo), lo agrega para no
+// perder el dato al editar.
+function setSelectValue(id, valor) {
+  const sel = document.getElementById(id);
+  if (valor && ![...sel.options].some(o => o.value === valor)) {
+    sel.add(new Option(valor, valor));
+  }
+  sel.value = valor;
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────
+function ctx(id) { return document.getElementById(id).getContext('2d'); }
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// Escala hedónica de sabor 1-5 (basada en la escala hedónica de Peryam & Pilgrim, 1957)
+const SABOR_LABELS = {
+  1: 'Me disgusta',
+  2: 'No me gusta mucho',
+  3: 'Ni me gusta ni me disgusta',
+  4: 'Me gusta',
+  5: 'Me gusta mucho',
+};
+
+function saborStars(sabor) {
+  if (!sabor) return '<span class="text-muted">–</span>';
+  const title = SABOR_LABELS[sabor] || '';
+  let html = `<span title="${title}" style="color:var(--cerveza);letter-spacing:1px">`;
+  for (let i = 1; i <= 5; i++) {
+    html += i <= sabor ? '★' : '<span style="color:#D0D7DE">★</span>';
+  }
+  return html + '</span>';
+}
+
+// Estrellas clickeables para calificar sabor directo desde la tabla/tarjeta,
+// sin tener que abrir el modal de edición.
+function saborStarsInline(id, sabor) {
+  sabor = sabor || 0;
+  let html = `<span style="letter-spacing:1px">`;
+  for (let i = 1; i <= 5; i++) {
+    html += `<span onclick="event.stopPropagation(); rateSabor(${id}, ${i}, ${sabor})"
+      style="cursor:pointer;color:${i <= sabor ? 'var(--cerveza)' : '#D0D7DE'}"
+      title="Calificar ${i}/5 – ${SABOR_LABELS[i]}">★</span>`;
+  }
+  return html + '</span>';
+}
+
+async function rateSabor(id, star, current) {
+  const nuevo = star === current ? 0 : star; // click en la misma estrella la desmarca
+  try {
+    const r = await fetch(`/api/latas/${id}/sabor`, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ sabor: nuevo || null })
+    });
+    if (!r.ok) throw new Error();
+  } catch (e) {
+    toast('❌ No se pudo calificar la lata', 'danger');
+    return;
+  }
+  toast(nuevo ? `⭐ Calificado ${nuevo}/5 – ${SABOR_LABELS[nuevo]}` : 'Calificación quitada', 'success');
+  loadColeccion(currentPage);
+  loadStats();
+}
+
+function setSaborPicker(value) {
+  document.getElementById('f-sabor').value = value || '';
+  const box = document.getElementById('f-sabor-stars');
+  box.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement('span');
+    star.textContent = i <= value ? '★' : '☆';
+    star.onclick = () => setSaborPicker(i === value ? 0 : i);
+    box.appendChild(star);
+  }
+  document.getElementById('f-sabor-lbl').textContent = value ? `${value}/5 – ${SABOR_LABELS[value]}` : 'Sin calificar';
+  saveDraft();
+}
+
+// ── Borrador automático (localStorage) ──────────────────────────────
+// Guarda lo que se está escribiendo en el formulario para no perderlo
+// si la computadora se apaga o el navegador se cierra de golpe.
+const DRAFT_KEY = 'lata_draft_v1';
+
+function collectDraft() {
+  return {
+    id:                document.getElementById('f-id').value,
+    marca:             document.getElementById('f-marca').value,
+    modelo:            document.getElementById('f-modelo').value,
+    tipo_lata:         document.getElementById('f-tipo').value,
+    pais:              document.getElementById('f-pais').value,
+    cantidad:          document.getElementById('f-cantidad').value,
+    notas:             document.getElementById('f-notas').value,
+    fecha_adquisicion: document.getElementById('f-fecha').value,
+    sabor:             document.getElementById('f-sabor').value,
+    ts:                Date.now(),
+  };
+}
+
+let draftSaveTimer;
+function saveDraft() {
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    const d = collectDraft();
+    if (!d.marca.trim() && !d.pais.trim() && !d.modelo.trim() && !d.notas.trim()) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) {}
+  }, 400);
+}
+
+function getDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+}
+
+function applyDraft(d) {
+  document.getElementById('f-marca').value    = d.marca || '';
+  document.getElementById('f-modelo').value   = d.modelo || '';
+  document.getElementById('f-tipo').value     = d.tipo_lata || '';
+  setSelectValue('f-pais', d.pais || '');
+  document.getElementById('f-cantidad').value = d.cantidad || 1;
+  document.getElementById('f-notas').value    = d.notas || '';
+  document.getElementById('f-fecha').value    = d.fecha_adquisicion || '';
+  setSaborPicker(parseInt(d.sabor) || 0);
+  updateFlagPreview();
+}
+
+// Si hay un borrador pendiente para esta misma lata (o una nueva lata),
+// preguntamos si se quiere recuperar.
+function restoreDraftIfAny(lata) {
+  const draft = getDraft();
+  if (!draft) return;
+  const currentId = lata?.id ? String(lata.id) : '';
+  if (draft.id !== currentId) return; // borrador de otra lata distinta
+  const tieneContenido = (draft.marca || '').trim() || (draft.pais || '').trim() ||
+                          (draft.modelo || '').trim() || (draft.notas || '').trim();
+  if (!tieneContenido) { clearDraft(); return; }
+  const minutos = Math.max(1, Math.round((Date.now() - draft.ts) / 60000));
+  if (confirm(`✏️ Se encontró un borrador sin guardar de hace ${minutos} minuto(s) ` +
+              `(${draft.marca || '(sin marca)'} - ${draft.pais || '(sin país)'}).\n\n¿Querés recuperarlo?`)) {
+    applyDraft(draft);
+  } else {
+    clearDraft();
+  }
+}
+
+function tipoCls(tipo) {
+  if (!tipo)                return 't-sin';
+  if (tipo === 'Grande')    return 't-grande';
+  if (tipo.includes('1 lt')) return 't-grande1';
+  if (tipo === 'Botellita') return 't-botellita';
+  return 't-sin';
+}
+
+// Imagen real de bandera (Windows no soporta emoji de países)
+function flagImg(iso2, h = 14) {
+  if (!iso2) return '';
+  const lo = iso2.toLowerCase();
+  return `<img src="https://flagcdn.com/w20/${lo}.png" alt="${iso2}"
+    style="height:${h}px;vertical-align:middle;border-radius:2px;margin-right:4px;box-shadow:0 1px 2px rgba(0,0,0,.2)"
+    onerror="this.style.display='none'">`;
+}
+
+// Emoji de bandera (solo para etiquetas de gráficos donde no entra HTML)
+function flag(iso2) {
+  if (!iso2) return '';
+  try {
+    return [...iso2.toUpperCase()].map(c =>
+      String.fromCodePoint(c.codePointAt(0) + 127397)).join('');
+  } catch { return ''; }
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function enc(s) { return encodeURIComponent(s || ''); }
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  const map = { success:'#198754', danger:'#dc3545', warning:'#fd7e14', info:'#0d6efd' };
+  el.style.background = map[type] || '#333';
+  document.getElementById('toast-msg').textContent = msg;
+  bootstrap.Toast.getOrCreateInstance(el, { delay: 3000 }).show();
+}
+</script>
+</body>
+</html>

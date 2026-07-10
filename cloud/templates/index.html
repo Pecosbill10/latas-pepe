@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buzón de latas – Pepe</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root { --cerveza:#D4811A; --azul:#1A3C5E; }
+  body { background:#121826; color:#E4E8EE; font-family:'Segoe UI',Arial,sans-serif; padding-bottom:2rem; }
+  .navbar { background:var(--azul); padding:.9rem 1rem; color:#fff; font-weight:700; font-size:1.15rem;
+    display:flex; justify-content:space-between; align-items:center; }
+  .navbar a { color:rgba(255,255,255,.7); font-size:.85rem; text-decoration:none; }
+  .container { max-width:520px; margin:0 auto; padding:1.2rem 1rem; }
+  .card-form { background:#1E2733; border-radius:14px; padding:1.2rem; margin-bottom:1.4rem;
+    box-shadow:0 2px 14px rgba(0,0,0,.35); }
+  label { font-weight:600; font-size:.85rem; color:#C2CCD8; margin-bottom:.25rem; display:block; }
+  .form-control, .form-select { background:#283447; color:#fff; border:1.5px solid #3A4656; border-radius:8px; }
+  .form-control:focus, .form-select:focus { background:#283447; color:#fff; border-color:var(--cerveza);
+    box-shadow:0 0 0 3px rgba(212,129,26,.2); }
+  .btn-cerveza { background:var(--cerveza); border:none; color:#fff; font-weight:700; border-radius:10px;
+    padding:.7rem; width:100%; margin-top:.6rem; }
+  .pend-item { background:#1E2733; border-radius:12px; padding:.8rem 1rem; margin-bottom:.6rem;
+    display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+  .pend-marca { font-weight:700; }
+  .pend-meta { font-size:.78rem; color:#9AA5B1; }
+  .btn-del { background:#3A2530; color:#ff8a80; border:none; border-radius:6px; padding:.35rem .6rem; }
+  .empty { text-align:center; color:#9AA5B1; padding:1.5rem; font-size:.9rem; }
+  .badge-count { background:var(--cerveza); color:#fff; border-radius:20px; font-size:.75rem;
+    padding:2px 9px; font-weight:700; }
+</style>
+</head>
+<body>
+  <div class="navbar">
+    <span>🍺 Buzón de latas</span>
+    <a href="{{ url_for('logout') }}">Salir</a>
+  </div>
+
+  <div class="container">
+    <div class="card-form">
+      <form method="post" action="{{ url_for('agregar') }}">
+        <div class="mb-3">
+          <label>Marca *</label>
+          <input type="text" name="marca" class="form-control" placeholder="Ej: Heineken" required autofocus>
+        </div>
+        <div class="mb-3">
+          <label>Modelo / Variante</label>
+          <input type="text" name="modelo" class="form-control" placeholder="Ej: Light, Strong...">
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-7">
+            <label>País</label>
+            <select name="pais" class="form-select">
+              <option value="">Sin especificar</option>
+              {% for p in paises %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-5">
+            <label>Cantidad</label>
+            <input type="number" name="cantidad" class="form-control" value="1" min="1">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label>Tipo de lata</label>
+          <select name="tipo_lata" class="form-select">
+            <option value="">Sin especificar</option>
+            <option value="Grande">Grande</option>
+            <option value="Grande 1 lt.">Grande 1 lt.</option>
+            <option value="Botellita">Botellita</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Notas</label>
+          <textarea name="notas" class="form-control" rows="2" placeholder="Dónde la conseguiste..."></textarea>
+        </div>
+        <button class="btn-cerveza" type="submit"><i class="fa-solid fa-plus me-1"></i>Anotar lata</button>
+      </form>
+    </div>
+
+    <h6 class="mb-2 d-flex align-items-center gap-2">
+      Pendientes de sincronizar <span class="badge-count">{{ pendientes|length }}</span>
+    </h6>
+
+    {% if not pendientes %}
+      <div class="empty">Todavía no anotaste ninguna lata nueva.<br>Cuando vuelvas a casa, sincronizá desde el programa principal.</div>
+    {% else %}
+      {% for p in pendientes %}
+      <div class="pend-item">
+        <div>
+          <div class="pend-marca">{{ p.marca }}{% if p.modelo %} <span class="fw-normal">— {{ p.modelo }}</span>{% endif %}</div>
+          <div class="pend-meta">{{ p.pais or 'Sin país' }} · x{{ p.cantidad }} · {{ p.creado }}</div>
+        </div>
+        <form method="post" action="{{ url_for('borrar', pid=p.id) }}" onsubmit="return confirm('¿Borrar esta anotación?')">
+          <button class="btn-del" type="submit"><i class="fa-solid fa-trash"></i></button>
+        </form>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</body>
+</html>

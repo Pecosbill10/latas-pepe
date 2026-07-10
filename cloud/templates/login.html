@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buzón de latas – Pepe</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+<style>
+  body { background:#121826; color:#E4E8EE; font-family:'Segoe UI',Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+  .box { background:#1E2733; border-radius:16px; padding:2rem; width:100%; max-width:340px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4); text-align:center; }
+  .box h1 { font-size:1.4rem; margin-bottom:.3rem; }
+  .box p { color:#9AA5B1; font-size:.85rem; margin-bottom:1.4rem; }
+  input[type=password] { background:#283447; border:1.5px solid #3A4656; color:#fff; border-radius:10px;
+    padding:.7rem 1rem; font-size:1.3rem; text-align:center; letter-spacing:6px; width:100%; }
+  input[type=password]:focus { outline:none; border-color:#D4811A; }
+  .btn-entrar { background:#D4811A; border:none; color:#fff; font-weight:700; border-radius:10px;
+    padding:.7rem; width:100%; margin-top:1rem; font-size:1rem; }
+  .err { color:#ff8a80; font-size:.85rem; margin-top:.8rem; }
+</style>
+</head>
+<body>
+  <form class="box" method="post">
+    <h1>🍺 Buzón de latas</h1>
+    <p>Ingresá el PIN para anotar una lata nueva</p>
+    <input type="password" name="pin" inputmode="numeric" autofocus placeholder="••••">
+    <button class="btn-entrar" type="submit">Entrar</button>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  </form>
+</body>
+</html>
