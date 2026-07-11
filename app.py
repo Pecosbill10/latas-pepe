@@ -29,10 +29,11 @@ FOTOS_DIR  = os.path.join(BASE_DIR, 'static', 'fotos')
 BACKUP_DIR = os.path.join(BASE_DIR, 'backups')
 
 # El token de sincronización con el buzón en la nube es una credencial, así que
-# NO vive dentro de la carpeta del proyecto (que está en OneDrive y se sincronizaría
-# a la nube de Microsoft pese al .gitignore). Vive en %LOCALAPPDATA%, la carpeta
-# estándar de Windows para config local de esta PC, que OneDrive no sincroniza.
-LOCAL_CONFIG_DIR = os.path.join(os.environ.get('LOCALAPPDATA') or os.path.expanduser('~'), 'LatasPepe')
+# vive un nivel arriba de la carpeta del proyecto (la "carpeta madre", ej. el
+# Escritorio) en vez de adentro: así queda físicamente fuera del repo git —
+# nunca puede subirse a GitHub pase lo que pase con el .gitignore — pero sigue
+# siendo una carpeta normal que se ve en el Explorador de Windows.
+LOCAL_CONFIG_DIR = os.path.join(os.path.dirname(BASE_DIR), 'LatasPepe-config')
 SYNC_CONFIG_PATH = os.path.join(LOCAL_CONFIG_DIR, 'sync_config.json')
 
 MAX_PER_PAGE = 200
