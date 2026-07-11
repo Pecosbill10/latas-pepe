@@ -567,7 +567,12 @@ def _validate_lata(d):
             return 'El sabor debe ser un número entre 1 y 5'
     return None
 
-def _insert_pendiente(d):
+def _encolar_pendiente(d):
+    """Modo nube: guarda una lata anotada desde internet en la cola de
+    'pendientes', a la espera de que la PC la traiga con /api/sync. No
+    confundir con _importar_pendiente (más abajo), que es la función del
+    lado PC que hace el proceso inverso: toma algo de esa cola y lo
+    mezcla de verdad en la colección real."""
     conn = get_conn()
     conn.execute(
         '''INSERT INTO pendientes (marca, modelo, tipo_lata, pais, cantidad, notas, fecha_adquisicion, sabor, creado)
@@ -632,7 +637,7 @@ def api_create():
                     'existing_id': dup['id'],
                     'existing_cantidad': dup['cantidad'],
                 }), 409
-        new_id = _insert_pendiente(d)
+        new_id = _encolar_pendiente(d)
         return jsonify({'id': new_id, 'ok': True, 'pendiente': True})
 
     if not d.get('force'):
@@ -1388,7 +1393,7 @@ def _auto_backup():
 def not_found(e):
     if request.path.startswith('/api/'):
         return jsonify({'error': 'recurso no encontrado'}), 404
-    return render_template('index.html'), 404
+    return render_template('index.html', cloud_mode=CLOUD_MODE), 404
 
 @app.errorhandler(413)
 def too_large(e):
@@ -1399,7 +1404,7 @@ def server_error(e):
     log.exception('Error interno')
     if request.path.startswith('/api/'):
         return jsonify({'error': 'error interno del servidor'}), 500
-    return render_template('index.html'), 500
+    return render_template('index.html', cloud_mode=CLOUD_MODE), 500
 
 os.makedirs(FOTOS_DIR, exist_ok=True)
 init_db()

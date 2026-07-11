@@ -263,42 +263,52 @@ if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark'
         <li class="nav-item">
           <button class="btn btn-cerveza" onclick="openModal()"><i class="fa-solid fa-plus me-1"></i>Agregar lata</button>
         </li>
-        <li class="nav-item ms-1">
-          <button class="btn btn-outline-warning btn-sm mt-1" onclick="exportar()">
-            <i class="fa-solid fa-file-excel me-1"></i>Excel
+
+        {% if not cloud_mode %}
+        <!-- Estos botones son mantenimiento de la PC (fuente de verdad): no
+             tienen sentido viendo la app desde internet, así que ahí no se muestran. -->
+
+        <!-- Todo lo que exporta/guarda una copia de la colección: Excel (para leer/compartir),
+             Backup (.db, copia exacta para restaurar) y Restaurar. -->
+        <li class="nav-item ms-1 dropdown">
+          <button class="btn btn-outline-light btn-sm mt-1 dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fa-solid fa-file-arrow-down me-1"></i>Copias de la colección
           </button>
-        </li>
-        <li class="nav-item ms-1">
-          <button class="btn btn-outline-light btn-sm mt-1" onclick="backup()" title="Descargar copia de seguridad de la base de datos">
-            <i class="fa-solid fa-database me-1"></i>Backup
-          </button>
-        </li>
-        <li class="nav-item ms-1">
-          <button class="btn btn-outline-light btn-sm mt-1" onclick="document.getElementById('restore-file').click()" title="Restaurar una copia de seguridad">
-            <i class="fa-solid fa-clock-rotate-left me-1"></i>Restaurar
-          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="exportar();return false">
+              <i class="fa-solid fa-file-excel me-2"></i>Exportar a Excel <small class="text-body-secondary d-block ms-4">para ver o compartir en una planilla</small>
+            </a></li>
+            <li><a class="dropdown-item" href="#" onclick="backup();return false">
+              <i class="fa-solid fa-database me-2"></i>Descargar backup <small class="text-body-secondary d-block ms-4">copia exacta, para restaurar todo tal cual</small>
+            </a></li>
+            <li><a class="dropdown-item" href="#" onclick="document.getElementById('restore-file').click();return false">
+              <i class="fa-solid fa-clock-rotate-left me-2"></i>Restaurar backup <small class="text-body-secondary d-block ms-4">reemplaza la colección actual por un backup anterior</small>
+            </a></li>
+          </ul>
           <input type="file" id="restore-file" accept=".db" style="display:none" onchange="restoreBackup(this)">
         </li>
-        <li class="nav-item ms-1">
-          <button class="btn btn-outline-light btn-sm mt-1" onclick="abrirModalCelular()" title="Acceder desde el celular">
-            <i class="fa-solid fa-mobile-screen-button me-1"></i>Celular
+
+        <!-- Todo lo relacionado con usar la app fuera de esta PC: celular en la
+             misma red Wi-Fi, y la app siempre-online en internet. -->
+        <li class="nav-item ms-1 dropdown">
+          <button class="btn btn-outline-light btn-sm mt-1 dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fa-solid fa-cloud me-1"></i>Celular / Internet
           </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="abrirModalCelular();return false">
+              <i class="fa-solid fa-mobile-screen-button me-2"></i>Acceder desde el celular <small class="text-body-secondary d-block ms-4">misma red Wi-Fi de casa, sin internet</small>
+            </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="pushCloud();return false">
+              <i class="fa-solid fa-cloud-arrow-up me-2"></i>Actualizar app de internet <small class="text-body-secondary d-block ms-4">sube esta colección para verla desde afuera</small>
+            </a></li>
+            <li><a class="dropdown-item" href="#" onclick="syncPendientes();return false">
+              <i class="fa-solid fa-cloud-arrow-down me-2"></i>Sincronizar <small class="text-body-secondary d-block ms-4">trae lo anotado desde afuera a esta colección</small>
+            </a></li>
+          </ul>
         </li>
-        <li class="nav-item ms-1">
-          <button class="btn btn-outline-light btn-sm mt-1" onclick="syncPendientes()" title="Traer las latas anotadas desde la app de internet">
-            <i class="fa-solid fa-cloud-arrow-down me-1"></i>Sincronizar
-          </button>
-        </li>
-        <li class="nav-item ms-1">
-          <button class="btn btn-outline-light btn-sm mt-1" onclick="pushCloud()" title="Actualizar la app de internet con la colección completa de esta PC">
-            <i class="fa-solid fa-cloud-arrow-up me-1"></i>Actualizar app online
-          </button>
-        </li>
-        <li class="nav-item ms-1">
-          <a class="btn btn-outline-light btn-sm mt-1" href="https://drive.google.com" target="_blank">
-            <i class="fa-brands fa-google-drive me-1"></i>Drive
-          </a>
-        </li>
+        {% endif %}
+
         <li class="nav-item ms-1">
           <button class="theme-toggle mt-1" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar tema claro/oscuro">
             <i class="fa-solid fa-moon"></i>
