@@ -24,9 +24,21 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Cuando corre como .exe empaquetado (PyInstaller), los archivos vienen
+# adentro de una carpeta temporal de solo lectura (sys._MEIPASS) — ahí están
+# el código, las templates y una copia "semilla" de latas.db para el primer
+# arranque. Pero la base de datos, las fotos y los backups tienen que vivir
+# en un lugar escribible y permanente al lado del .exe, para que sobrevivan
+# entre una apertura y otra del programa.
+if getattr(sys, 'frozen', False):
+    BASE_DIR     = os.path.dirname(sys.executable)
+    RESOURCE_DIR = sys._MEIPASS
+else:
+    BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
+    RESOURCE_DIR = BASE_DIR
+
 DB_PATH    = os.path.join(BASE_DIR, 'latas.db')
-EXCEL_PATH = os.path.join(BASE_DIR, 'Latas de cerveza.xlsx')
+EXCEL_PATH = os.path.join(RESOURCE_DIR, 'Latas de cerveza.xlsx')
 FOTOS_DIR  = os.path.join(BASE_DIR, 'static', 'fotos')
 BACKUP_DIR = os.path.join(BASE_DIR, 'backups')
 
@@ -52,8 +64,28 @@ MAX_PER_PAGE = 200
 FOTO_EXTS    = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 PORT         = 5000
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=os.path.join(RESOURCE_DIR, 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'static'),
+)
 app.config['MAX_CONTENT_LENGTH'] = 12 * 1024 * 1024  # 12 MB por foto
+
+def _bootstrap_frozen():
+    """Primer arranque del .exe: copia al lado del ejecutable las cosas que
+    tienen que quedar escribibles (static con sus íconos/PWA, y una copia de
+    latas.db si todavía no existe ahí) — sin esto, cada apertura del programa
+    intentaría escribir dentro de la carpeta temporal de solo lectura."""
+    if not getattr(sys, 'frozen', False):
+        return
+    static_dst = os.path.join(BASE_DIR, 'static')
+    if not os.path.exists(static_dst):
+        shutil.copytree(os.path.join(RESOURCE_DIR, 'static'), static_dst)
+    seed_db = os.path.join(RESOURCE_DIR, 'latas.db')
+    if not os.path.exists(DB_PATH) and os.path.exists(seed_db):
+        shutil.copy2(seed_db, DB_PATH)
+
+_bootstrap_frozen()
 
 CLOUD_PIN = None
 if CLOUD_MODE:
@@ -1347,4 +1379,10 @@ if __name__ == '__main__':
     print('\n🍺  Colección de Latas de Pepe arrancando...')
     print(f'   En esta PC:       http://localhost:{PORT}')
     print(f'   Desde el celular: http://{lan_ip}:{PORT}  (misma red Wi-Fi, sin internet)\n')
+    if getattr(sys, 'frozen', False):
+        # Al ser un .exe de doble clic (sin .bat que abra el navegador por
+        # afuera como en el modo desarrollo), lo abrimos nosotros mismos.
+        import threading
+        import webbrowser
+        threading.Timer(1.5, lambda: webbrowser.open(f'http://localhost:{PORT}')).start()
     app.run(debug=False, host='0.0.0.0', port=PORT)
