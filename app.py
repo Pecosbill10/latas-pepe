@@ -27,7 +27,13 @@ DB_PATH    = os.path.join(BASE_DIR, 'latas.db')
 EXCEL_PATH = os.path.join(BASE_DIR, 'Latas de cerveza.xlsx')
 FOTOS_DIR  = os.path.join(BASE_DIR, 'static', 'fotos')
 BACKUP_DIR = os.path.join(BASE_DIR, 'backups')
-SYNC_CONFIG_PATH = os.path.join(BASE_DIR, 'sync_config.json')
+
+# El token de sincronización con el buzón en la nube es una credencial, así que
+# NO vive dentro de la carpeta del proyecto (que está en OneDrive y se sincronizaría
+# a la nube de Microsoft pese al .gitignore). Vive en %LOCALAPPDATA%, la carpeta
+# estándar de Windows para config local de esta PC, que OneDrive no sincroniza.
+LOCAL_CONFIG_DIR = os.path.join(os.environ.get('LOCALAPPDATA') or os.path.expanduser('~'), 'LatasPepe')
+SYNC_CONFIG_PATH = os.path.join(LOCAL_CONFIG_DIR, 'sync_config.json')
 
 MAX_PER_PAGE = 200
 FOTO_EXTS    = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
@@ -742,7 +748,7 @@ def _importar_pendiente(conn, d):
 def api_sync():
     cfg = _load_sync_config()
     if not cfg or not cfg.get('cloud_url') or not cfg.get('token'):
-        return jsonify({'error': 'Falta configurar sync_config.json (copiá sync_config.example.json y completalo)'}), 400
+        return jsonify({'error': f'Falta configurar la sincronización. Creá el archivo {SYNC_CONFIG_PATH} (ver sync_config.example.json en el proyecto como modelo)'}), 400
 
     base = cfg['cloud_url'].rstrip('/')
     try:
