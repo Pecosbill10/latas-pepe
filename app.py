@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
 import sqlite3
 import pandas as pd
 import os
@@ -8,6 +8,8 @@ import socket
 import json
 import logging
 import shutil
+import secrets
+import re
 import urllib.request
 import urllib.error
 import qrcode
@@ -36,12 +38,29 @@ BACKUP_DIR = os.path.join(BASE_DIR, 'backups')
 LOCAL_CONFIG_DIR = os.path.join(os.path.dirname(BASE_DIR), 'LatasPepe-config')
 SYNC_CONFIG_PATH = os.path.join(LOCAL_CONFIG_DIR, 'sync_config.json')
 
+# Este mismo app.py se despliega dos veces: acá en la PC (fuente de verdad,
+# lectura y escritura completa) y en PythonAnywhere (app.py del deploy tiene
+# al lado un cloud_config.json que NUNCA existe en la PC ni se sube a GitHub
+# — vive solo en el servidor). Su sola presencia activa el modo nube: la
+# colección se ve completa (dashboard, galería, wishlist) pero de solo
+# lectura; lo único que se puede hacer ahí es anotar una lata nueva, que
+# queda pendiente hasta que la PC sincroniza.
+CLOUD_CONFIG_PATH = os.path.join(BASE_DIR, 'cloud_config.json')
+CLOUD_MODE = os.path.exists(CLOUD_CONFIG_PATH)
+
 MAX_PER_PAGE = 200
 FOTO_EXTS    = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 PORT         = 5000
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 12 * 1024 * 1024  # 12 MB por foto
+
+CLOUD_PIN = None
+if CLOUD_MODE:
+    with open(CLOUD_CONFIG_PATH, encoding='utf-8') as f:
+        _cloud_cfg = json.load(f)
+    app.secret_key = _cloud_cfg['secret_key']
+    CLOUD_PIN = str(_cloud_cfg['pin'])
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 log = app.logger
@@ -144,6 +163,24 @@ def init_db():
     )''')
     c.execute('CREATE INDEX IF NOT EXISTS idx_wishlist_pais ON wishlist(pais)')
 
+    # Buzón de latas anotadas desde la versión de internet, pendientes de que
+    # la PC las traiga. No se borran al sincronizar, se marcan como tal: así
+    # esta tabla queda como respaldo permanente de todo lo anotado afuera de casa.
+    c.execute('''CREATE TABLE IF NOT EXISTS pendientes (
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        marca             TEXT NOT NULL,
+        modelo            TEXT,
+        tipo_lata         TEXT,
+        pais              TEXT,
+        cantidad          INTEGER DEFAULT 1,
+        notas             TEXT,
+        fecha_adquisicion TEXT,
+        sabor             INTEGER,
+        creado            TEXT,
+        synced            INTEGER DEFAULT 0,
+        synced_at         TEXT
+    )''')
+
     conn.commit()
 
     c.execute('SELECT COUNT(*) FROM latas')
@@ -214,6 +251,47 @@ def get_lan_ip():
         return '127.0.0.1'
     finally:
         s.close()
+
+# ── Acceso a la versión de internet (solo aplica en modo nube) ─────────────
+# En la PC no hay login: es tu propia máquina. En la nube sí, porque el link
+# queda expuesto a internet.
+
+PUBLIC_PATHS = {'/login', '/logout', '/sw.js'}
+TOKEN_PATHS  = {'/api/pendientes', '/api/pendientes/limpiar', '/api/push'}
+
+@app.before_request
+def _cloud_gate():
+    if not CLOUD_MODE:
+        return
+    if request.path.startswith('/static/') or request.path in PUBLIC_PATHS:
+        return
+    if request.path in TOKEN_PATHS:
+        token = request.args.get('token') or request.headers.get('X-Token')
+        if token != CLOUD_PIN:
+            return jsonify({'error': 'no autorizado'}), 401
+        return
+    if not session.get('ok'):
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'no autorizado'}), 401
+        return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        if request.form.get('pin', '') == CLOUD_PIN:
+            session['ok'] = True
+            return redirect(url_for('index'))
+        error = 'PIN incorrecto'
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+def _cloud_readonly():
+    return jsonify({'error': 'Esta acción no está disponible en la versión de internet. Se hace desde la PC.'}), 403
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -457,12 +535,38 @@ def _validate_lata(d):
             return 'El sabor debe ser un número entre 1 y 5'
     return None
 
+def _insert_pendiente(d):
+    conn = get_conn()
+    conn.execute(
+        '''INSERT INTO pendientes (marca, modelo, tipo_lata, pais, cantidad, notas, fecha_adquisicion, sabor, creado)
+           VALUES (?,?,?,?,?,?,?,?,?)''',
+        (
+            (d.get('marca') or '').strip(),
+            (d.get('modelo') or '').strip() or None,
+            d.get('tipo_lata') or None,
+            (d.get('pais') or '').strip() or None,
+            max(int(d.get('cantidad', 1)), 1),
+            (d.get('notas') or '').strip() or None,
+            d.get('fecha_adquisicion') or None,
+            _parse_sabor(d),
+            datetime.now().strftime('%Y-%m-%d %H:%M'),
+        )
+    )
+    conn.commit()
+    new_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+    conn.close()
+    return new_id
+
 @app.route('/api/latas', methods=['POST'])
 def api_create():
     d = request.get_json(silent=True) or {}
     err = _validate_lata(d)
     if err:
         return jsonify({'error': err}), 400
+
+    if CLOUD_MODE:
+        new_id = _insert_pendiente(d)
+        return jsonify({'id': new_id, 'ok': True, 'pendiente': True})
 
     marca  = (d.get('marca') or '').strip()
     modelo = (d.get('modelo') or '').strip() or None
@@ -511,6 +615,8 @@ def api_create():
 
 @app.route('/api/latas/<int:lid>', methods=['PUT'])
 def api_update(lid):
+    if CLOUD_MODE:
+        return _cloud_readonly()
     d = request.get_json(silent=True) or {}
     err = _validate_lata(d)
     if err:
@@ -545,6 +651,8 @@ def api_update(lid):
 @app.route('/api/latas/<int:lid>/sabor', methods=['PATCH'])
 def api_lata_sabor(lid):
     """Calificación rápida (estrellas clickeables desde la tabla, sin abrir el modal)."""
+    if CLOUD_MODE:
+        return _cloud_readonly()
     d = request.get_json(silent=True) or {}
     if d.get('sabor') not in (None, '', 0):
         try:
@@ -567,6 +675,8 @@ def api_lata_sabor(lid):
 
 @app.route('/api/latas/<int:lid>', methods=['DELETE'])
 def api_delete(lid):
+    if CLOUD_MODE:
+        return _cloud_readonly()
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT id FROM latas WHERE id=?', (lid,))
@@ -640,6 +750,8 @@ def api_wishlist_create():
 
 @app.route('/api/wishlist/<int:wid>', methods=['PUT'])
 def api_wishlist_update(wid):
+    if CLOUD_MODE:
+        return _cloud_readonly()
     d = request.get_json(silent=True) or {}
     err = _validate_wishlist(d)
     if err:
@@ -669,6 +781,8 @@ def api_wishlist_update(wid):
 
 @app.route('/api/wishlist/<int:wid>', methods=['DELETE'])
 def api_wishlist_delete(wid):
+    if CLOUD_MODE:
+        return _cloud_readonly()
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT id FROM wishlist WHERE id=?', (wid,))
@@ -683,6 +797,8 @@ def api_wishlist_delete(wid):
 @app.route('/api/wishlist/<int:wid>/conseguir', methods=['POST'])
 def api_wishlist_conseguir(wid):
     """Pasa un ítem de la wishlist a la colección real."""
+    if CLOUD_MODE:
+        return _cloud_readonly()
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT * FROM wishlist WHERE id=?', (wid,))
@@ -783,8 +899,158 @@ def api_sync():
     detalle = [f"{p['marca']} ({p.get('pais') or 'sin país'})" for p in pendientes]
     return jsonify({'ok': True, 'importados': len(pendientes), 'detalle': detalle})
 
+# ── Lado nube: recibe pull de pendientes y push de la colección completa ───
+# (solo se usan cuando este mismo app.py corre en PythonAnywhere en CLOUD_MODE)
+
+@app.route('/api/pendientes')
+def api_pendientes():
+    conn = get_conn()
+    rows = [dict(r) for r in conn.execute(
+        'SELECT * FROM pendientes WHERE synced=0 OR synced IS NULL ORDER BY id'
+    ).fetchall()]
+    conn.close()
+    return jsonify({'data': rows})
+
+@app.route('/api/pendientes/limpiar', methods=['POST'])
+def api_pendientes_limpiar():
+    """Marca como sincronizado en vez de borrar: queda como respaldo permanente
+    de todo lo anotado desde la versión de internet."""
+    ids = (request.get_json(silent=True) or {}).get('ids', [])
+    if not ids:
+        return jsonify({'error': 'no ids'}), 400
+    conn = get_conn()
+    ph = ','.join('?' * len(ids))
+    conn.execute(
+        f'UPDATE pendientes SET synced=1, synced_at=? WHERE id IN ({ph})',
+        [datetime.now().strftime('%Y-%m-%d %H:%M')] + ids
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+FOTO_FNAME_RE = re.compile(r'^\d+\.(jpg|jpeg|png|gif|webp)$')
+
+@app.route('/api/push', methods=['POST'])
+def api_push():
+    """Recibe desde la PC una foto completa de latas+wishlist (y las fotos
+    comprimidas que corresponden) y reemplaza lo que hay en la nube. No toca
+    la tabla 'pendientes': lo anotado ahí desde el celular/internet que
+    todavía no viajó a la PC se conserva intacto."""
+    payload = request.form.get('data')
+    if not payload:
+        return jsonify({'error': 'sin datos'}), 400
+    try:
+        data = json.loads(payload)
+    except ValueError:
+        return jsonify({'error': 'JSON inválido'}), 400
+
+    conn = get_conn()
+    conn.execute('DELETE FROM latas')
+    for l in data.get('latas', []):
+        conn.execute(
+            '''INSERT INTO latas (id, marca, modelo, tipo_lata, pais, cantidad, foto_path, notas, fecha_adquisicion, fecha_carga, sabor)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+            (l.get('id'), l.get('marca'), l.get('modelo'), l.get('tipo_lata'), l.get('pais'),
+             l.get('cantidad', 1), l.get('foto_path'), l.get('notas'), l.get('fecha_adquisicion'),
+             l.get('fecha_carga'), l.get('sabor'))
+        )
+    conn.execute('DELETE FROM wishlist')
+    for w in data.get('wishlist', []):
+        conn.execute(
+            '''INSERT INTO wishlist (id, marca, modelo, pais, prioridad, notas, fecha_agregado)
+               VALUES (?,?,?,?,?,?,?)''',
+            (w.get('id'), w.get('marca'), w.get('modelo'), w.get('pais'),
+             w.get('prioridad', 'media'), w.get('notas'), w.get('fecha_agregado'))
+        )
+    conn.commit()
+    conn.close()
+
+    os.makedirs(FOTOS_DIR, exist_ok=True)
+    fotos_guardadas = 0
+    for fname, f in request.files.items():
+        if FOTO_FNAME_RE.match(fname):
+            f.save(os.path.join(FOTOS_DIR, fname))
+            fotos_guardadas += 1
+
+    return jsonify({
+        'ok': True,
+        'latas': len(data.get('latas', [])),
+        'wishlist': len(data.get('wishlist', [])),
+        'fotos': fotos_guardadas,
+    })
+
+# ── Lado PC: arma y manda el push de arriba ─────────────────────────────────
+
+@app.route('/api/push-cloud', methods=['POST'])
+def api_push_cloud():
+    if CLOUD_MODE:
+        return _cloud_readonly()
+    cfg = _load_sync_config()
+    if not cfg or not cfg.get('cloud_url') or not cfg.get('token'):
+        return jsonify({'error': f'Falta configurar la sincronización. Creá el archivo {SYNC_CONFIG_PATH} (ver sync_config.example.json en el proyecto como modelo)'}), 400
+
+    conn = get_conn()
+    latas    = [dict(r) for r in conn.execute('SELECT * FROM latas').fetchall()]
+    wishlist = [dict(r) for r in conn.execute('SELECT * FROM wishlist').fetchall()]
+    conn.close()
+
+    # Comprimimos cada foto a un tamaño chico antes de mandarla, para que la
+    # versión de internet sea liviana y rápida aunque haya cientos de fotos.
+    boundary = '----latasboundary' + secrets.token_hex(8)
+    photo_parts = []
+    for l in latas:
+        fp = l.get('foto_path')
+        if not fp:
+            continue
+        local_path = os.path.join(BASE_DIR, fp.lstrip('/'))
+        if not os.path.exists(local_path):
+            l['foto_path'] = None
+            continue
+        try:
+            with Image.open(local_path) as img:
+                img = img.convert('RGB')
+                img.thumbnail((400, 400))
+                buf = io.BytesIO()
+                img.save(buf, format='JPEG', quality=70)
+        except (UnidentifiedImageError, OSError):
+            l['foto_path'] = None
+            continue
+        fname = f"{l['id']}.jpg"
+        l['foto_path'] = f'/static/fotos/{fname}'
+        photo_parts.append((fname, buf.getvalue()))
+
+    payload = json.dumps({'latas': latas, 'wishlist': wishlist}).encode('utf-8')
+
+    parts = [
+        f'--{boundary}\r\nContent-Disposition: form-data; name="data"\r\n\r\n'.encode('utf-8') + payload + b'\r\n'
+    ]
+    for fname, data_bytes in photo_parts:
+        parts.append(
+            (f'--{boundary}\r\nContent-Disposition: form-data; name="{fname}"; filename="{fname}"\r\n'
+             f'Content-Type: image/jpeg\r\n\r\n').encode('utf-8') + data_bytes + b'\r\n'
+        )
+    parts.append(f'--{boundary}--\r\n'.encode('utf-8'))
+    body = b''.join(parts)
+
+    base = cfg['cloud_url'].rstrip('/')
+    req = urllib.request.Request(
+        f"{base}/api/push?token={cfg['token']}",
+        data=body,
+        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'},
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+    except (urllib.error.URLError, TimeoutError, ValueError) as e:
+        return jsonify({'error': f'No se pudo conectar con la app en la nube: {e}'}), 502
+
+    return jsonify({'ok': True, **result})
+
 @app.route('/api/latas/<int:lid>/foto', methods=['POST'])
 def api_foto(lid):
+    if CLOUD_MODE:
+        return _cloud_readonly()
     if 'foto' not in request.files:
         return jsonify({'error': 'no file'}), 400
     f = request.files['foto']
@@ -1002,6 +1268,8 @@ def api_restore():
     """Restaura la base de datos desde un archivo .db subido por el usuario
     (por ejemplo, uno descargado antes con /api/backup). Antes de sobreescribir,
     guarda una copia de seguridad del estado actual por las dudas."""
+    if CLOUD_MODE:
+        return _cloud_readonly()
     if 'backup' not in request.files:
         return jsonify({'error': 'no se envió ningún archivo'}), 400
     f = request.files['backup']
@@ -1070,9 +1338,10 @@ def server_error(e):
         return jsonify({'error': 'error interno del servidor'}), 500
     return render_template('index.html'), 500
 
+os.makedirs(FOTOS_DIR, exist_ok=True)
+init_db()
+
 if __name__ == '__main__':
-    os.makedirs(FOTOS_DIR, exist_ok=True)
-    init_db()
     _auto_backup()
     lan_ip = get_lan_ip()
     print('\n🍺  Colección de Latas de Pepe arrancando...')

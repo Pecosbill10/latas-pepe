@@ -5,6 +5,8 @@ backups/
 static/fotos/*
 !static/fotos/.gitkeep
 sync_config.json
+cloud_config.json
+pendientes.db
 cloud/pendientes.db
 cloud/cloud_config.json
 .claude/

@@ -285,8 +285,13 @@ if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark'
           </button>
         </li>
         <li class="nav-item ms-1">
-          <button class="btn btn-outline-light btn-sm mt-1" onclick="syncPendientes()" title="Traer las latas anotadas desde el buzón en la nube">
+          <button class="btn btn-outline-light btn-sm mt-1" onclick="syncPendientes()" title="Traer las latas anotadas desde la app de internet">
             <i class="fa-solid fa-cloud-arrow-down me-1"></i>Sincronizar
+          </button>
+        </li>
+        <li class="nav-item ms-1">
+          <button class="btn btn-outline-light btn-sm mt-1" onclick="pushCloud()" title="Actualizar la app de internet con la colección completa de esta PC">
+            <i class="fa-solid fa-cloud-arrow-up me-1"></i>Actualizar app online
           </button>
         </li>
         <li class="nav-item ms-1">
@@ -1835,6 +1840,24 @@ async function syncPendientes() {
   toast(`✅ Se importaron ${data.importados} lata${data.importados !== 1 ? 's' : ''} del celular: ${data.detalle.join(', ')}`, 'success');
   await loadStats();
   if (document.getElementById('sec-coleccion').classList.contains('active')) loadColeccion(currentPage);
+}
+
+// ── Actualizar la app de internet con la colección completa ────────────
+async function pushCloud() {
+  toast('☁️ Actualizando la app de internet, puede tardar unos segundos...', 'info');
+  let res, data;
+  try {
+    res  = await fetch('/api/push-cloud', { method: 'POST' });
+    data = await res.json();
+  } catch (e) {
+    toast('❌ No se pudo conectar con el servidor', 'danger');
+    return;
+  }
+  if (!res.ok) {
+    toast('❌ ' + (data.error || 'Error al actualizar la app online'), 'danger');
+    return;
+  }
+  toast(`✅ App online actualizada: ${data.latas} latas, ${data.wishlist} deseos, ${data.fotos} fotos`, 'success');
 }
 
 // ── Acceso desde el celular ──────────────────────────────────────────
