@@ -76,6 +76,15 @@ def init_db():
         sabor             INTEGER,
         creado            TEXT
     )''')
+
+    # Migración: en vez de borrar lo ya sincronizado, lo marcamos como tal y
+    # lo dejamos guardado. Así este buzón funciona como una segunda copia de
+    # respaldo de lo cargado desde el celular, no solo como una cola de paso.
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(pendientes)")}
+    for col, defn in [('synced', 'INTEGER DEFAULT 0'), ('synced_at', 'TEXT')]:
+        if col not in existing:
+            conn.execute(f'ALTER TABLE pendientes ADD COLUMN {col} {defn}')
+
     conn.commit()
     conn.close()
 
@@ -123,7 +132,9 @@ def logout():
 @login_required
 def index():
     conn = get_conn()
-    rows = conn.execute('SELECT * FROM pendientes ORDER BY id DESC').fetchall()
+    rows = conn.execute(
+        'SELECT * FROM pendientes WHERE synced=0 OR synced IS NULL ORDER BY id DESC'
+    ).fetchall()
     conn.close()
     return render_template('index.html', pendientes=rows, paises=PAISES)
 
@@ -171,7 +182,9 @@ def borrar(pid):
 @token_required
 def api_pendientes():
     conn = get_conn()
-    rows = [dict(r) for r in conn.execute('SELECT * FROM pendientes ORDER BY id').fetchall()]
+    rows = [dict(r) for r in conn.execute(
+        'SELECT * FROM pendientes WHERE synced=0 OR synced IS NULL ORDER BY id'
+    ).fetchall()]
     conn.close()
     return jsonify({'data': rows})
 
@@ -179,12 +192,18 @@ def api_pendientes():
 @app.route('/api/pendientes/limpiar', methods=['POST'])
 @token_required
 def api_limpiar():
+    """Marca como sincronizado en vez de borrar: este buzón queda como
+    respaldo permanente de todo lo anotado desde el celular, por si la
+    importación a la colección principal fallara o hubiera que auditar algo."""
     ids = (request.get_json(silent=True) or {}).get('ids', [])
     if not ids:
         return jsonify({'error': 'no ids'}), 400
     conn = get_conn()
     ph = ','.join('?' * len(ids))
-    conn.execute(f'DELETE FROM pendientes WHERE id IN ({ph})', ids)
+    conn.execute(
+        f'UPDATE pendientes SET synced=1, synced_at=? WHERE id IN ({ph})',
+        [datetime.now().strftime('%Y-%m-%d %H:%M')] + ids
+    )
     conn.commit()
     conn.close()
     return jsonify({'ok': True})
