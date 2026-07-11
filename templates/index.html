@@ -64,9 +64,10 @@ body { background: var(--fondo); color: var(--text); font-family: 'Segoe UI', Ar
 .stat-card {
   background: var(--surface); border-radius: 14px; padding: 1.3rem 1.4rem;
   box-shadow: var(--shadow); display: flex; align-items: center; gap: 1rem;
-  transition: transform .15s;
+  transition: transform .15s; cursor: pointer;
 }
 .stat-card:hover { transform: translateY(-3px); }
+.stat-card:focus-visible { outline: 2px solid var(--cerveza); outline-offset: 2px; }
 .stat-icon { width: 50px; height: 50px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink:0; }
 .si-gold  { background:#FFF3E0; color:var(--cerveza); }
@@ -327,31 +328,31 @@ if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark'
 <div id="sec-dashboard" class="section active">
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-      <div class="stat-card">
+      <div class="stat-card" role="button" tabindex="0" onclick="irAColeccionFiltrada({})" title="Ver toda la colección">
         <div class="stat-icon si-gold">🍺</div>
         <div><div class="stat-val" id="s-total">–</div><div class="stat-lbl">Total latas</div></div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="stat-card">
+      <div class="stat-card" role="button" tabindex="0" onclick="showSection('stats');showStatTab('mapa')" title="Ver mapa por país">
         <div class="stat-icon si-blue"><i class="fa-solid fa-globe fa-sm"></i></div>
         <div><div class="stat-val" id="s-paises">–</div><div class="stat-lbl">Países</div></div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="stat-card">
+      <div class="stat-card" role="button" tabindex="0" onclick="showSection('stats');showStatTab('marcas')" title="Ver ranking de marcas">
         <div class="stat-icon si-green"><i class="fa-solid fa-tag fa-sm"></i></div>
         <div><div class="stat-val" id="s-marcas">–</div><div class="stat-lbl">Marcas distintas</div></div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="stat-card">
+      <div class="stat-card" role="button" tabindex="0" onclick="irAColeccionFiltrada({})" title="Ver toda la colección">
         <div class="stat-icon si-red"><i class="fa-solid fa-layer-group fa-sm"></i></div>
         <div><div class="stat-val" id="s-modelos">–</div><div class="stat-lbl">Modelos distintos</div></div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="stat-card">
+      <div class="stat-card" role="button" tabindex="0" onclick="showSection('stats');showStatTab('sabor')" title="Ver detalle de sabores">
         <div class="stat-icon si-gold"><i class="fa-solid fa-star fa-sm"></i></div>
         <div><div class="stat-val" id="s-sabor">–</div><div class="stat-lbl">Sabor promedio (1-5)</div></div>
       </div>
@@ -415,6 +416,7 @@ if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark'
       <div class="col-6 col-md-2">
         <select id="filtro-tipo" class="form-select" onchange="loadColeccion(1)">
           <option value="">Todos los tipos</option>
+          <option value="Sin especificar">Sin especificar</option>
         </select>
       </div>
       <div class="col-6 col-md-2">
@@ -981,6 +983,28 @@ function checkMilestones(d) {
 }
 
 // ── Dashboard Charts ──────────────────────────────────────────────────
+// Las tarjetas del dashboard son <div role="button">, que a diferencia de
+// <button> no activan onclick con Enter/Espacio por si solas.
+document.addEventListener('keydown', (ev) => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches('[role="button"]')) {
+    ev.preventDefault();
+    ev.target.click();
+  }
+});
+
+// ── Navegación entre secciones ──────────────────────────────────────
+// Lleva a la Colección ya filtrada por país y/o tipo (usada desde los
+// gráficos del dashboard, para que un clic en una barra/porción "vincule"
+// con el listado real en vez de quedar como un dibujo suelto).
+function irAColeccionFiltrada({ pais, tipo } = {}) {
+  const selPais = document.getElementById('filtro-pais');
+  const selTipo = document.getElementById('filtro-tipo');
+  if (pais !== undefined) selPais.value = [...selPais.options].some(o => o.value === pais) ? pais : '';
+  if (tipo !== undefined) selTipo.value = [...selTipo.options].some(o => o.value === tipo) ? tipo : '';
+  showSection('coleccion');
+  loadColeccion(1);
+}
+
 function renderDashboardCharts() {
   const d = statsData;
   const COLORS_MULTI = ['#2E6DA4','#D4811A','#2E7D32','#C62828','#6A1B9A','#00838F','#F57F17'];
@@ -998,7 +1022,9 @@ function renderDashboardCharts() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      onClick: (evt, els) => { if (els.length) irAColeccionFiltrada({ pais: d.por_pais[els[0].index].pais }); },
+      onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { footer: () => 'Clic para ver estas latas' } } },
       scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { stepSize: 1 } } }
     }
   });
@@ -1013,7 +1039,9 @@ function renderDashboardCharts() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+      onClick: (evt, els) => { if (els.length) irAColeccionFiltrada({ tipo: d.por_tipo[els[0].index].tipo }); },
+      onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } }, tooltip: { callbacks: { footer: () => 'Clic para ver estas latas' } } }
     }
   });
 }

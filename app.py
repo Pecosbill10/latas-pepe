@@ -93,6 +93,11 @@ if CLOUD_MODE:
         _cloud_cfg = json.load(f)
     app.secret_key = _cloud_cfg['secret_key']
     CLOUD_PIN = str(_cloud_cfg['pin'])
+    # La cookie de sesión solo debe viajar por HTTPS (PythonAnywhere ya sirve
+    # todo por https, así que esto no rompe nada y evita que quede expuesta
+    # si alguna vez algo apunta a http:// por error).
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 log = app.logger
@@ -291,6 +296,25 @@ def get_lan_ip():
 PUBLIC_PATHS = {'/login', '/logout', '/sw.js'}
 TOKEN_PATHS  = {'/api/pendientes', '/api/pendientes/limpiar', '/api/push'}
 
+# El PIN de la nube son solo unos pocos dígitos, así que sin esto alguien
+# podría probar miles de combinaciones por minuto contra /login o contra los
+# endpoints con token hasta acertar. Frenamos por IP: pasados MAX_INTENTOS
+# fallidos en la VENTANA, se bloquea esa IP un rato. Vive en memoria (no hace
+# falta persistirlo: total, si se reinicia el proceso, se resetea el contador
+# y listo, no es un dato que importe conservar).
+_intentos_fallidos = {}
+MAX_INTENTOS_LOGIN = 10
+VENTANA_LOGIN_SEG  = 15 * 60
+
+def _login_bloqueado(ip):
+    ahora = datetime.now().timestamp()
+    intentos = [t for t in _intentos_fallidos.get(ip, []) if ahora - t < VENTANA_LOGIN_SEG]
+    _intentos_fallidos[ip] = intentos
+    return len(intentos) >= MAX_INTENTOS_LOGIN
+
+def _registrar_intento_fallido(ip):
+    _intentos_fallidos.setdefault(ip, []).append(datetime.now().timestamp())
+
 @app.before_request
 def _cloud_gate():
     if not CLOUD_MODE:
@@ -298,8 +322,12 @@ def _cloud_gate():
     if request.path.startswith('/static/') or request.path in PUBLIC_PATHS:
         return
     if request.path in TOKEN_PATHS:
-        token = request.args.get('token') or request.headers.get('X-Token')
-        if token != CLOUD_PIN:
+        ip = request.remote_addr
+        if _login_bloqueado(ip):
+            return jsonify({'error': 'demasiados intentos fallidos, esperá unos minutos'}), 429
+        token = request.args.get('token') or request.headers.get('X-Token') or ''
+        if not secrets.compare_digest(token, CLOUD_PIN):
+            _registrar_intento_fallido(ip)
             return jsonify({'error': 'no autorizado'}), 401
         return
     if not session.get('ok'):
@@ -311,10 +339,15 @@ def _cloud_gate():
 def login():
     error = None
     if request.method == 'POST':
-        if request.form.get('pin', '') == CLOUD_PIN:
+        ip = request.remote_addr
+        if _login_bloqueado(ip):
+            error = 'Demasiados intentos fallidos. Esperá unos minutos y volvé a probar.'
+        elif secrets.compare_digest(request.form.get('pin', ''), CLOUD_PIN):
             session['ok'] = True
             return redirect(url_for('index'))
-        error = 'PIN incorrecto'
+        else:
+            _registrar_intento_fallido(ip)
+            error = 'PIN incorrecto'
     return render_template('login.html', error=error)
 
 @app.route('/logout')
