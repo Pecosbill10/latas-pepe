@@ -329,7 +329,7 @@ def _cloud_readonly():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', cloud_mode=CLOUD_MODE)
 
 @app.route('/sw.js')
 def service_worker():
@@ -596,13 +596,44 @@ def api_create():
     if err:
         return jsonify({'error': err}), 400
 
-    if CLOUD_MODE:
-        new_id = _insert_pendiente(d)
-        return jsonify({'id': new_id, 'ok': True, 'pendiente': True})
-
     marca  = (d.get('marca') or '').strip()
     modelo = (d.get('modelo') or '').strip() or None
     pais   = (d.get('pais') or '').strip() or None
+
+    if CLOUD_MODE:
+        if not d.get('force'):
+            # Avisamos si ya la tenés (en la colección real ya sincronizada, o
+            # anotada recién y todavía sin sincronizar) para no sumar cantidad
+            # de más por un doble toque sin querer en el celular.
+            dupconn = get_conn()
+            dupc = dupconn.cursor()
+            dupc.execute(
+                '''SELECT id, cantidad FROM latas
+                   WHERE LOWER(marca) = LOWER(?)
+                     AND LOWER(COALESCE(modelo,'')) = LOWER(COALESCE(?,''))
+                     AND LOWER(COALESCE(pais,''))   = LOWER(COALESCE(?,''))''',
+                (marca, modelo, pais)
+            )
+            dup = dupc.fetchone()
+            if not dup:
+                dupc.execute(
+                    '''SELECT id, cantidad FROM pendientes
+                       WHERE (synced=0 OR synced IS NULL)
+                         AND LOWER(marca) = LOWER(?)
+                         AND LOWER(COALESCE(modelo,'')) = LOWER(COALESCE(?,''))
+                         AND LOWER(COALESCE(pais,''))   = LOWER(COALESCE(?,''))''',
+                    (marca, modelo, pais)
+                )
+                dup = dupc.fetchone()
+            dupconn.close()
+            if dup:
+                return jsonify({
+                    'duplicate': True,
+                    'existing_id': dup['id'],
+                    'existing_cantidad': dup['cantidad'],
+                }), 409
+        new_id = _insert_pendiente(d)
+        return jsonify({'id': new_id, 'ok': True, 'pendiente': True})
 
     if not d.get('force'):
         dupconn = get_conn()

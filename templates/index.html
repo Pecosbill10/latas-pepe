@@ -836,6 +836,7 @@ function toggleTheme() {
 }
 
 // ── Globals ──────────────────────────────────────────────────────────
+const CLOUD_MODE = {{ 'true' if cloud_mode else 'false' }};
 let currentPage  = 1;
 const PER_PAGE   = 50;
 let debounceTimer;
@@ -1555,6 +1556,29 @@ async function guardarLata() {
   }
 
   let newId = id;
+
+  if (res.status === 409 && data.duplicate && CLOUD_MODE) {
+    // En la nube no se puede editar nada existente: esto es solo una alerta
+    // para evitar sumar de más por un doble toque sin querer. Si confirma,
+    // se anota igual y la cantidad real se corrige al sincronizar con la PC.
+    const confirmar = confirm(
+      `Ya tenés "${marca}${body.modelo ? ' - ' + body.modelo : ''}" de ${pais} ` +
+      `(cantidad actual: ${data.existing_cantidad}).\n\n` +
+      `¿Es una lata distinta que también querés sumar?\n` +
+      `Aceptar = anotarla igual.\nCancelar = no anotar (evitar duplicado).`
+    );
+    if (!confirmar) return;
+    body.force = true;
+    res  = await fetch('/api/latas',
+      { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    data = await res.json();
+    if (!res.ok) { toast('❌ ' + (data.error || 'Error al guardar'), 'danger'); return; }
+    newId = data.id;
+    clearDraft();
+    modalInst.hide();
+    toast(`✅ Anotada. Se va a sumar a tu colección real cuando sincronices desde la PC.`, 'success');
+    return;
+  }
 
   if (res.status === 409 && data.duplicate) {
     const sumar = confirm(
